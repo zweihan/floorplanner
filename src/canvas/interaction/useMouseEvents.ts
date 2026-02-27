@@ -58,6 +58,10 @@ export function useMouseEvents(
   const setActivePlanNoHistory = useStore(s => s.setActivePlanNoHistory);
   const updateWallEndpoints = useStore(s => s.updateWallEndpoints);
   const setCalibrationLine = useStore(s => s.setCalibrationLine);
+  const addDimension = useStore(s => s.addDimension);
+  const addTextLabel = useStore(s => s.addTextLabel);
+  const deleteElements = useStore(s => s.deleteElements);
+  const setEditingTextLabelId = useStore(s => s.setEditingTextLabelId);
 
   // ─── Pan state
   const isPanning = useRef(false);
@@ -100,6 +104,10 @@ export function useMouseEvents(
     basePlan: Plan;
     lastRotation: number;
   } | null>(null);
+
+  // Eraser: accumulate element ids hit during drag, commit as one history entry on mouseup
+  const eraserIdsRef = useRef<Set<string>>(new Set());
+  const eraserDraggingRef = useRef(false);
 
   // Set grab cursor when pan tool is active
   useEffect(() => {
@@ -286,6 +294,52 @@ export function useMouseEvents(
         return;
       }
 
+      // ── Dimension tool ──────────────────────────────────────────────────────
+      if (activeTool === 'dimension') {
+        const lastPt = wallChain.length > 0 ? wallChain[wallChain.length - 1] : null;
+        const snap = getSnapped(e, lastPt);
+        onSnapChange(snap);
+        if (wallChain.length === 0) {
+          pushToChain(snap.point);
+        } else {
+          const from = wallChain[0];
+          if (distance(from, snap.point) >= 0.5) {
+            addDimension({ start: from, end: snap.point, offset: 12, overrideText: null });
+          }
+          clearChain();
+          setGhostPoint(null);
+          onSnapChange(null);
+        }
+        return;
+      }
+
+      // ── Text tool ────────────────────────────────────────────────────────────
+      if (activeTool === 'text') {
+        const world = rawToWorld(e);
+        addTextLabel({ position: world, text: 'Label', fontSize: 14, color: '#333333', align: 'left' });
+        // Immediately open inline editor for the newly placed label (read fresh store state)
+        const freshState = useStore.getState();
+        const labels = freshState.activePlanId ? freshState.plans[freshState.activePlanId]?.textLabels : undefined;
+        if (labels && labels.length > 0) {
+          setEditingTextLabelId(labels[labels.length - 1].id);
+        }
+        return;
+      }
+
+      // ── Eraser tool ──────────────────────────────────────────────────────────
+      if (activeTool === 'eraser') {
+        const plan = activePlanId ? plans[activePlanId] : null;
+        if (!plan) return;
+        const world = rawToWorld(e);
+        const threshold = getHitThreshold();
+        const hit = hitTestPlan(plan, world, threshold);
+        if (hit) {
+          eraserIdsRef.current = new Set([hit]);
+          eraserDraggingRef.current = true;
+        }
+        return;
+      }
+
       // ── Calibrate tool ──────────────────────────────────────────────────────
       if (activeTool === 'calibrate') {
         const world = rawToWorld(e);
@@ -444,6 +498,29 @@ export function useMouseEvents(
         const snap = applySnapping(raw, plan.walls, settings, plan.viewport, PPCM, lastPt, e.shiftKey);
         setGhostPoint(snap.point);
         onSnapChange(snap);
+        return;
+      }
+
+      // ── Dimension tool ghost ────────────────────────────────────────────────
+      if (activeTool === 'dimension') {
+        const lastPt = wallChain.length > 0 ? wallChain[wallChain.length - 1] : null;
+        if (lastPt) {
+          const snap = applySnapping(raw, plan.walls, settings, plan.viewport, PPCM, lastPt, e.shiftKey);
+          setGhostPoint(snap.point);
+          onSnapChange(snap);
+        } else {
+          setGhostPoint(raw);
+        }
+        return;
+      }
+
+      // ── Eraser drag ──────────────────────────────────────────────────────────
+      if (activeTool === 'eraser' && eraserDraggingRef.current) {
+        const threshold = getHitThreshold();
+        const hit = hitTestPlan(plan, raw, threshold);
+        if (hit && !eraserIdsRef.current.has(hit)) {
+          eraserIdsRef.current.add(hit);
+        }
         return;
       }
 
@@ -629,6 +706,16 @@ export function useMouseEvents(
         return;
       }
 
+      // Eraser commit (single history entry for the whole drag)
+      if (eraserDraggingRef.current) {
+        eraserDraggingRef.current = false;
+        if (eraserIdsRef.current.size > 0) {
+          deleteElements([...eraserIdsRef.current]);
+          eraserIdsRef.current = new Set();
+        }
+        return;
+      }
+
       // Rubber-band commit
       if (rubberBandRef.current) {
         const s = rubberBandRef.current.start;
@@ -654,6 +741,14 @@ export function useMouseEvents(
     const onMouseLeave = () => {
       isPanning.current = false;
       panStart.current = null;
+      // Commit any in-progress eraser drag
+      if (eraserDraggingRef.current) {
+        eraserDraggingRef.current = false;
+        if (eraserIdsRef.current.size > 0) {
+          deleteElements([...eraserIdsRef.current]);
+          eraserIdsRef.current = new Set();
+        }
+      }
       // Cancel any in-flight drag and restore base plan
       if (furnitureRotateRef.current) {
         setActivePlanNoHistory(furnitureRotateRef.current.basePlan);
@@ -680,9 +775,9 @@ export function useMouseEvents(
       onOpeningGhostChange(null);
     };
 
-    // ─── Double click: end wall chain / commit room ───────────────────────────
-    const onDblClick = () => {
-      const { activeTool } = stateRef.current;
+    // ─── Double click: end wall chain / commit room / edit text ──────────────
+    const onDblClick = (e: MouseEvent) => {
+      const { activeTool, plans, activePlanId } = stateRef.current;
       if (activeTool === 'wall') {
         if (wallsInChain.current > 0) {
           undo();
@@ -696,6 +791,17 @@ export function useMouseEvents(
         // Remove the last vertex added by this dblclick's mousedown (duplicate)
         const pts = chain.length >= 2 ? chain.slice(0, -1) : chain;
         commitRoom(pts);
+      } else if (activeTool === 'select') {
+        // Double-click on a text label → start inline editing
+        const plan = activePlanId ? plans[activePlanId] : null;
+        if (!plan) return;
+        const world = rawToWorld(e);
+        const threshold = getHitThreshold();
+        const hit = hitTestPlan(plan, world, threshold);
+        if (hit && plan.textLabels.find(t => t.id === hit)) {
+          setSelectedIds([hit]);
+          setEditingTextLabelId(hit);
+        }
       }
     };
 
@@ -757,7 +863,7 @@ export function useMouseEvents(
     addWall, addRoom, addOpening, addFurniture, updateFurniture,
     pushToChain, clearChain, setGhostPoint, setCamera, undo,
     setSelectedIds, moveElements, setActivePlanNoHistory, updateWallEndpoints,
-    setCalibrationLine,
+    setCalibrationLine, addDimension, addTextLabel, deleteElements, setEditingTextLabelId,
     onSnapChange, onRubberBandChange, onOpeningGhostChange,
   ]);
 }

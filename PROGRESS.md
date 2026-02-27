@@ -1,6 +1,6 @@
 # FloorPlanner — Implementation Progress
 
-## Status: Checkpoint 12 complete — awaiting review
+## Status: Checkpoint 13 complete — awaiting review
 
 ## Completed
 
@@ -18,6 +18,7 @@
 - [x] **Checkpoint 10 — Furniture** ✅
 - [x] **Checkpoint 11 — Pan Tool, Opening Properties & Passages** ✅
 - [x] **Checkpoint 12 — Reference Image Tracing** ✅
+- [x] **Checkpoint 13 — Annotations (Dimensions + Text)** ✅
 
 ---
 
@@ -226,17 +227,29 @@ What you should see running `npm run dev`:
 
 ---
 
-## Checkpoint 13 — Annotations (Dimensions + Text) [NEXT]
+## Checkpoint 13 — Annotations (Dimensions + Text) (DONE)
 
-| File | What it does |
+| File | What changed |
 |------|--------------|
-| `src/canvas/layers/dimensions.ts` | Dimension line rendering: extension lines, arrow heads, centered label (§F7.2); auto-skip < 40 px |
-| `src/canvas/layers/textLabels.ts` | Render text labels with font/color/alignment |
-| `src/canvas/interaction/useMouseEvents.ts` | Dimension tool (M): click start, click end, drag offset; Text tool (T): click to place |
-| Inline editing | DOM `<textarea>` overlay on double-click; commit on Enter/blur, cancel on Escape (§F8.4) |
-| Eraser tool (E) | Click or drag over elements to delete them one-by-one |
+| `src/canvas/layers/dimensions.ts` | `drawDimensions` + `drawDimensionGhost`: extension lines, filled arrowheads, centered label; auto-skip < 40 px screen |
+| `src/canvas/layers/textLabels.ts` | `drawTextLabels`: renders text at world position with font/color/alignment; skips label being inline-edited |
+| `src/canvas/layers/dimensions.test.ts` | 4 unit tests for perpendicular offset geometry (canvas y-down convention) |
+| `src/store/index.ts` | Added `editingTextLabelId` (not in undo history) + `setEditingTextLabelId` action |
+| `src/canvas/renderer.ts` | Steps 8/9: dimensions + text labels; step 11d: dimension placement ghost |
+| `src/canvas/CanvasContainer.tsx` | Inline `<textarea>` overlay for text editing (auto-focus, Enter commits, Escape cancels); passes `editingTextLabelId` to renderer |
+| `src/canvas/interaction/useMouseEvents.ts` | Dimension tool (M): 2-click places line at 12 cm offset; Text tool (T): click places label + opens inline editor; Eraser (E): drag accumulates hit IDs, single `deleteElements` on mouseup; double-click on text label opens editor |
+| `src/components/PropertiesPanel.tsx` | `DimensionProperties` (measured length, offset, override text) + `TextLabelProperties` (edit button, font size, alignment, color) |
 
-Tests: dimension offset computation, `formatMeasurement` round-trip.
+Build: `tsc --noEmit` clean, 124/124 tests.
+
+What you should see running `npm run dev`:
+
+- Press **M** → dimension tool; click two points → dimension line appears with extension lines, arrows, and measured length label
+- Press **T** → text tool; click anywhere → "Label" text placed + inline text editor opens (type and press Enter)
+- Double-click any text label → inline editor opens for editing; press Enter/blur to commit, Escape to cancel (empty text deletes label)
+- Press **E** → eraser tool; click or drag over walls, furniture, openings, dimensions, text labels to delete them (single undo entry per drag)
+- Select a dimension line → Properties panel shows its length + offset + optional override text
+- Select a text label → Properties panel shows font size, alignment, color; click Edit to open inline editor
 
 ---
 

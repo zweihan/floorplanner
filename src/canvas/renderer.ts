@@ -14,6 +14,8 @@ import { drawSelection } from './layers/selection';
 import { drawFurniture, drawFurnitureGhost } from './layers/furniture';
 import { getTemplate } from '../data/furnitureTemplates';
 import { drawBackgroundImage, drawCalibrationLine } from './layers/backgroundImage';
+import { drawDimensions, drawDimensionGhost } from './layers/dimensions';
+import { drawTextLabels } from './layers/textLabels';
 
 export interface RenderState {
   plan: Plan;
@@ -33,6 +35,7 @@ export interface RenderState {
   openingGhost: OpeningGhost | null;
   backgroundImage: BackgroundImage | null;
   calibrationLine: { start: Point; end: Point } | null;
+  editingTextLabelId: string | null;
   ppcm: number; // always 4
 }
 
@@ -81,8 +84,15 @@ export function render(
     drawOpenings(ctx, plan.walls, plan.openings, viewport, settings, state.ppcm);
   }
 
-  // 8. Dimension lines — Phase 3
-  // 9. Text labels — Phase 3
+  // 8. Dimension lines
+  if (layers.annotations.visible) {
+    drawDimensions(ctx, plan.dimensions, viewport, settings, state.ppcm);
+  }
+
+  // 9. Text labels
+  if (layers.annotations.visible) {
+    drawTextLabels(ctx, plan.textLabels, viewport, state.ppcm, state.editingTextLabelId);
+  }
 
   // 10. Wall length labels (shown when showDimensions is on)
   if (settings.showDimensions && layers.structure.visible) {
@@ -103,6 +113,11 @@ export function render(
     if (template) {
       drawFurnitureGhost(ctx, template, state.ghostPoint, viewport, state.ppcm);
     }
+  }
+
+  // 11d. Dimension placement ghost
+  if (activeTool === 'dimension' && wallChain.length > 0 && ghostPoint) {
+    drawDimensionGhost(ctx, wallChain[0], ghostPoint, viewport, state.ppcm);
   }
 
   // 12. Tool preview (ghost wall or room polygon)

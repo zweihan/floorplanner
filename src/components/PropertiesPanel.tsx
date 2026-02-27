@@ -525,6 +525,148 @@ function FurnitureProperties({ furnitureId }: { furnitureId: string }) {
   );
 }
 
+// ─── Dimension Properties ─────────────────────────────────────────────────────
+
+function DimensionProperties({ dimId }: { dimId: string }) {
+  const plan = useStore(s => s.plans[s.activePlanId!]);
+  const updateDimension = useStore(s => s.updateDimension);
+  const dim = plan?.dimensions.find(d => d.id === dimId);
+
+  const [offset, setOffset] = useState(dim?.offset ?? 12);
+  const [overrideText, setOverrideText] = useState(dim?.overrideText ?? '');
+
+  useEffect(() => {
+    if (dim) { setOffset(dim.offset); setOverrideText(dim.overrideText ?? ''); }
+  }, [dim?.offset, dim?.overrideText]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (!dim) return null;
+
+  const unit = (plan.unit === 'in' ? 'cm' : plan.unit) as DisplayUnit;
+  const measuredLen = distance(dim.start, dim.end);
+
+  const commitOffset = () => {
+    updateDimension(dimId, { offset });
+  };
+
+  const commitOverride = () => {
+    updateDimension(dimId, { overrideText: overrideText.trim() || null });
+  };
+
+  return (
+    <div className="space-y-2.5">
+      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Dimension</p>
+
+      <Row label="Length">
+        <span className="text-xs text-gray-700 text-right block font-mono">
+          {formatMeasurement(measuredLen, unit)}
+        </span>
+      </Row>
+
+      <Row label="Offset">
+        <div className="flex items-center gap-1">
+          <input
+            type="number" step={1} value={Math.round(offset)}
+            onChange={e => setOffset(Number(e.target.value))}
+            onBlur={commitOffset}
+            onKeyDown={e => e.key === 'Enter' && commitOffset()}
+            className="w-full border border-gray-300 rounded px-2 py-0.5 text-xs text-right focus:outline-none focus:ring-1 focus:ring-blue-400"
+          />
+          <span className="text-xs text-gray-400 shrink-0">cm</span>
+        </div>
+      </Row>
+
+      <Row label="Label">
+        <input
+          type="text"
+          value={overrideText}
+          placeholder={formatMeasurement(measuredLen, unit)}
+          onChange={e => setOverrideText(e.target.value)}
+          onBlur={commitOverride}
+          onKeyDown={e => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
+          className="w-full border border-gray-300 rounded px-2 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-400"
+          title="Override the displayed label (leave empty for auto)"
+        />
+      </Row>
+    </div>
+  );
+}
+
+// ─── Text Label Properties ────────────────────────────────────────────────────
+
+function TextLabelProperties({ labelId }: { labelId: string }) {
+  const plan = useStore(s => s.plans[s.activePlanId!]);
+  const updateTextLabel = useStore(s => s.updateTextLabel);
+  const setEditingTextLabelId = useStore(s => s.setEditingTextLabelId);
+  const label = plan?.textLabels.find(t => t.id === labelId);
+
+  const [fontSize, setFontSize] = useState(label?.fontSize ?? 14);
+
+  useEffect(() => {
+    if (label) setFontSize(label.fontSize);
+  }, [label?.fontSize]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (!label) return null;
+
+  const commitFontSize = () => {
+    const v = Math.max(4, Math.min(200, fontSize));
+    setFontSize(v);
+    if (v !== label.fontSize) updateTextLabel(labelId, { fontSize: v });
+  };
+
+  return (
+    <div className="space-y-2.5">
+      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Text Label</p>
+
+      <Row label="Text">
+        <button
+          onClick={() => setEditingTextLabelId(labelId)}
+          className="w-full text-left border border-gray-300 rounded px-2 py-0.5 text-xs text-gray-700 truncate hover:bg-gray-50 focus:outline-none focus:ring-1 focus:ring-blue-400"
+          title="Click to edit text"
+        >
+          {label.text || <span className="text-gray-400 italic">empty</span>}
+        </button>
+      </Row>
+
+      <Row label="Size">
+        <div className="flex items-center gap-1">
+          <input
+            type="number" min={4} max={200} step={1}
+            value={Math.round(fontSize)}
+            onChange={e => setFontSize(Number(e.target.value))}
+            onBlur={commitFontSize}
+            onKeyDown={e => e.key === 'Enter' && commitFontSize()}
+            className="w-full border border-gray-300 rounded px-2 py-0.5 text-xs text-right focus:outline-none focus:ring-1 focus:ring-blue-400"
+          />
+          <span className="text-xs text-gray-400 shrink-0">cm</span>
+        </div>
+      </Row>
+
+      <Row label="Align">
+        <select
+          value={label.align}
+          onChange={e => updateTextLabel(labelId, { align: e.target.value as 'left' | 'center' | 'right' })}
+          className="w-full border border-gray-300 rounded px-2 py-0.5 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-blue-400"
+        >
+          <option value="left">Left</option>
+          <option value="center">Center</option>
+          <option value="right">Right</option>
+        </select>
+      </Row>
+
+      <Row label="Color">
+        <div className="flex items-center gap-2 justify-end">
+          <input
+            type="color" value={label.color}
+            onChange={e => updateTextLabel(labelId, { color: e.target.value })}
+            className="w-8 h-6 border border-gray-300 rounded cursor-pointer p-0"
+          />
+          <span className="text-xs text-gray-400 font-mono">{label.color}</span>
+        </div>
+      </Row>
+    </div>
+  );
+}
+
 // ─── Multi-select ─────────────────────────────────────────────────────────────
 
 function MultiSelectProperties({ count }: { count: number }) {
@@ -553,10 +695,12 @@ export function PropertiesPanel() {
   const plan = useStore(s => s.plans[s.activePlanId!]);
 
   const singleId = selectedIds.length === 1 ? selectedIds[0] : null;
-  const singleWall     = singleId ? plan?.walls.find(w => w.id === singleId) ?? null : null;
-  const singleRoom     = singleId ? plan?.rooms.find(r => r.id === singleId) ?? null : null;
-  const singleOpening  = singleId ? plan?.openings.find(o => o.id === singleId) ?? null : null;
+  const singleWall      = singleId ? plan?.walls.find(w => w.id === singleId) ?? null : null;
+  const singleRoom      = singleId ? plan?.rooms.find(r => r.id === singleId) ?? null : null;
+  const singleOpening   = singleId ? plan?.openings.find(o => o.id === singleId) ?? null : null;
   const singleFurniture = singleId ? plan?.furniture.find(f => f.id === singleId) ?? null : null;
+  const singleDimension = singleId ? plan?.dimensions.find(d => d.id === singleId) ?? null : null;
+  const singleTextLabel = singleId ? plan?.textLabels.find(t => t.id === singleId) ?? null : null;
 
   return (
     <aside className="w-60 bg-white border-l border-gray-200 shrink-0 p-3 overflow-y-auto">
@@ -571,6 +715,10 @@ export function PropertiesPanel() {
         <OpeningProperties openingId={singleId!} />
       ) : singleFurniture ? (
         <FurnitureProperties furnitureId={singleId!} />
+      ) : singleDimension ? (
+        <DimensionProperties dimId={singleId!} />
+      ) : singleTextLabel ? (
+        <TextLabelProperties labelId={singleId!} />
       ) : (
         <MultiSelectProperties count={selectedIds.length} />
       )}

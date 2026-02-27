@@ -83,6 +83,9 @@ interface AppState {
   backgroundImages: Record<string, BackgroundImage>;
   calibrationLine: { start: Point; end: Point } | null;
 
+  // Inline text editing
+  editingTextLabelId: string | null;
+
   // History
   past: Plan[];
   future: Plan[];
@@ -149,6 +152,7 @@ interface AppState {
   setBackgroundImage(planId: string, bg: BackgroundImage | null): void;
   updateBackgroundImage(planId: string, patch: Partial<BackgroundImage>): void;
   setCalibrationLine(line: { start: Point; end: Point } | null): void;
+  setEditingTextLabelId(id: string | null): void;
 
   toggleShowGrid(): void;
   toggleSnapToGrid(): void;
@@ -201,6 +205,7 @@ export const useStore = create<AppState>((set, get) => ({
   // Background reference images (not persisted, not in undo history)
   backgroundImages: {},
   calibrationLine: null,
+  editingTextLabelId: null,
 
   // History
   past: [],
@@ -622,6 +627,10 @@ export const useStore = create<AppState>((set, get) => ({
 
   setCalibrationLine: (line) => {
     set({ calibrationLine: line });
+  },
+
+  setEditingTextLabelId: (id) => {
+    set({ editingTextLabelId: id });
   },
 }));
 

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useStore } from '../store';
 import { useCanvas } from './useCanvas';
 import { render } from './renderer';
-import { applyZoom, PPCM } from '../geometry/transforms';
+import { applyZoom, PPCM, worldToScreen } from '../geometry/transforms';
 import { useMouseEvents } from './interaction/useMouseEvents';
 import { ScaleBar } from '../components/HUD/ScaleBar';
 import { CoordinateDisplay } from '../components/HUD/CoordinateDisplay';
@@ -26,6 +26,13 @@ export function CanvasContainer() {
   const pendingFurnitureTemplateId = useStore(s => s.pendingFurnitureTemplateId);
   const activeTool = useStore(s => s.activeTool);
   const setCamera = useStore(s => s.setCamera);
+
+  // Inline text editing
+  const editingTextLabelId = useStore(s => s.editingTextLabelId);
+  const setEditingTextLabelId = useStore(s => s.setEditingTextLabelId);
+  const updateTextLabel = useStore(s => s.updateTextLabel);
+  const deleteTextLabel = useStore(s => s.deleteTextLabel);
+  const [editingText, setEditingText] = useState('');
 
   // Background image state
   const backgroundImages = useStore(s => s.backgroundImages);
@@ -66,6 +73,33 @@ export function CanvasContainer() {
     setActiveTool('select');
   }, [calibLengthInput, activePlanId, calibrationLine, backgroundImage, updateBackgroundImage, setCalibrationLine, setActiveTool]);
 
+  // Sync editing text when label changes
+  useEffect(() => {
+    if (!editingTextLabelId || !plan) { return; }
+    const label = plan.textLabels.find(t => t.id === editingTextLabelId);
+    if (label) setEditingText(label.text);
+  }, [editingTextLabelId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const commitTextEdit = useCallback(() => {
+    if (!editingTextLabelId) return;
+    const trimmed = editingText.trim();
+    if (trimmed) {
+      updateTextLabel(editingTextLabelId, { text: trimmed });
+    } else {
+      // Empty text → delete the label
+      deleteTextLabel(editingTextLabelId);
+    }
+    setEditingTextLabelId(null);
+  }, [editingTextLabelId, editingText, updateTextLabel, deleteTextLabel, setEditingTextLabelId]);
+
+  const cancelTextEdit = useCallback(() => {
+    if (!editingTextLabelId || !plan) { setEditingTextLabelId(null); return; }
+    // If the label still has its placeholder text, it was just placed — remove it
+    const label = plan.textLabels.find(t => t.id === editingTextLabelId);
+    if (label?.text === 'Label') deleteTextLabel(editingTextLabelId);
+    setEditingTextLabelId(null);
+  }, [editingTextLabelId, plan, deleteTextLabel, setEditingTextLabelId]);
+
   const cancelCalibration = useCallback(() => {
     setCalibrationLine(null);
     setCalibLengthInput('');
@@ -94,10 +128,11 @@ export function CanvasContainer() {
         openingGhost,
         backgroundImage,
         calibrationLine,
+        editingTextLabelId,
         ppcm: PPCM,
       });
     },
-    [plan, settings, selectedIds, hoveredId, ghostPoint, wallChain, drawingState, showGrid, layers, pendingFurnitureTemplateId, snapResult, rubberBandRect, activeTool, openingGhost, backgroundImage, calibrationLine]
+    [plan, settings, selectedIds, hoveredId, ghostPoint, wallChain, drawingState, showGrid, layers, pendingFurnitureTemplateId, snapResult, rubberBandRect, activeTool, openingGhost, backgroundImage, calibrationLine, editingTextLabelId]
   );
 
   const canvasRef = useCanvas(renderFn);
@@ -137,6 +172,44 @@ export function CanvasContainer() {
           <BackgroundImagePanel />
         </div>
       </div>
+
+      {/* Inline text label editor */}
+      {editingTextLabelId && plan && (() => {
+        const label = plan.textLabels.find(t => t.id === editingTextLabelId);
+        if (!label) return null;
+        const sp = worldToScreen(label.position.x, label.position.y, plan.viewport, PPCM);
+        const fontSizePx = Math.max(10, label.fontSize * PPCM * plan.viewport.zoom);
+        return (
+          <textarea
+            autoFocus
+            rows={1}
+            value={editingText}
+            onChange={e => setEditingText(e.target.value)}
+            onBlur={commitTextEdit}
+            onKeyDown={e => {
+              if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); commitTextEdit(); }
+              if (e.key === 'Escape') { e.preventDefault(); cancelTextEdit(); }
+            }}
+            style={{
+              position: 'absolute',
+              left: sp.x,
+              top: sp.y,
+              fontSize: `${fontSizePx}px`,
+              fontFamily: 'system-ui, sans-serif',
+              color: label.color,
+              minWidth: 80,
+              background: 'rgba(255,255,255,0.9)',
+              border: '1px solid #2563eb',
+              borderRadius: 3,
+              padding: '1px 3px',
+              outline: 'none',
+              resize: 'none',
+              lineHeight: 1.2,
+              zIndex: 20,
+            }}
+          />
+        );
+      })()}
 
       {/* Calibration length input overlay — centered, blocks canvas interaction */}
       {calibrationLine && (
