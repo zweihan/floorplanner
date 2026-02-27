@@ -1,0 +1,16 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom canvas cursor styles */
+canvas { cursor: default; }
+canvas[data-tool="wall"] { cursor: crosshair; }
+canvas[data-tool="room"] { cursor: crosshair; }
+canvas[data-tool="door"] { cursor: cell; }
+canvas[data-tool="window"] { cursor: cell; }
+canvas[data-tool="eraser"] { cursor: cell; }
+canvas[data-tool="pan"] { cursor: grab; }
+canvas[data-tool="pan"][data-dragging="true"] { cursor: grabbing; }
+canvas[data-tool="furniture"] { cursor: copy; }
+canvas[data-tool="dimension"] { cursor: crosshair; }
+canvas[data-tool="text"] { cursor: text; }

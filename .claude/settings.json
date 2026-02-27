@@ -1,0 +1,19 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd /Users/weihan/repos/floorplanner && [ -f tsconfig.json ] && npx tsc --noEmit 2>&1 | head -20 || echo '[tsc] project not yet bootstrapped — skipping type check'"
+          },
+          {
+            "type": "command",
+            "command": "cd /Users/weihan/repos/floorplanner && [ -f package.json ] && npx vitest run --reporter=verbose 2>&1 | tail -30 || echo '[vitest] project not yet bootstrapped — skipping tests'"
+          }
+        ]
+      }
+    ]
+  }
+}
