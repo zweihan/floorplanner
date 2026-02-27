@@ -57,6 +57,7 @@ export function useMouseEvents(
   const moveElements = useStore(s => s.moveElements);
   const setActivePlanNoHistory = useStore(s => s.setActivePlanNoHistory);
   const updateWallEndpoints = useStore(s => s.updateWallEndpoints);
+  const setCalibrationLine = useStore(s => s.setCalibrationLine);
 
   // ─── Pan state
   const isPanning = useRef(false);
@@ -285,6 +286,19 @@ export function useMouseEvents(
         return;
       }
 
+      // ── Calibrate tool ──────────────────────────────────────────────────────
+      if (activeTool === 'calibrate') {
+        const world = rawToWorld(e);
+        if (wallChain.length === 0) {
+          pushToChain(world);
+        } else {
+          setCalibrationLine({ start: wallChain[0], end: world });
+          clearChain();
+          setGhostPoint(null);
+        }
+        return;
+      }
+
       // ── Select tool ─────────────────────────────────────────────────────────
       if (activeTool === 'select') {
         const plan = activePlanId ? plans[activePlanId] : null;
@@ -430,6 +444,12 @@ export function useMouseEvents(
         const snap = applySnapping(raw, plan.walls, settings, plan.viewport, PPCM, lastPt, e.shiftKey);
         setGhostPoint(snap.point);
         onSnapChange(snap);
+        return;
+      }
+
+      // ── Calibrate tool ghost ────────────────────────────────────────────────
+      if (activeTool === 'calibrate') {
+        setGhostPoint(raw);
         return;
       }
 
@@ -737,6 +757,7 @@ export function useMouseEvents(
     addWall, addRoom, addOpening, addFurniture, updateFurniture,
     pushToChain, clearChain, setGhostPoint, setCamera, undo,
     setSelectedIds, moveElements, setActivePlanNoHistory, updateWallEndpoints,
+    setCalibrationLine,
     onSnapChange, onRubberBandChange, onOpeningGhostChange,
   ]);
 }

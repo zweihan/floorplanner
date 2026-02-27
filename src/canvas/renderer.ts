@@ -1,4 +1,4 @@
-import type { Plan, Viewport, Point, Opening } from '../types/plan';
+import type { Plan, Viewport, Point, Opening, BackgroundImage } from '../types/plan';
 import type { UserSettings } from '../types/settings';
 import type { LayerName, DrawingState, SnapResult, ToolType } from '../types/tools';
 import { worldToScreen } from '../geometry/transforms';
@@ -13,6 +13,7 @@ import { drawSnapIndicators } from './layers/snapIndicators';
 import { drawSelection } from './layers/selection';
 import { drawFurniture, drawFurnitureGhost } from './layers/furniture';
 import { getTemplate } from '../data/furnitureTemplates';
+import { drawBackgroundImage, drawCalibrationLine } from './layers/backgroundImage';
 
 export interface RenderState {
   plan: Plan;
@@ -30,6 +31,8 @@ export interface RenderState {
   rubberBandRect: { x1: number; y1: number; x2: number; y2: number } | null;
   activeTool: ToolType;
   openingGhost: OpeningGhost | null;
+  backgroundImage: BackgroundImage | null;
+  calibrationLine: { start: Point; end: Point } | null;
   ppcm: number; // always 4
 }
 
@@ -47,6 +50,11 @@ export function render(
 
   // 1. Background
   drawBackground(ctx, width, height, settings);
+
+  // 1.5 Reference image (before grid so grid overlays image)
+  if (state.backgroundImage) {
+    drawBackgroundImage(ctx, state.backgroundImage, viewport, state.ppcm);
+  }
 
   // 2. Grid
   if (showGrid) {
@@ -125,4 +133,13 @@ export function render(
 
   // 13. Snap indicators
   drawSnapIndicators(ctx, ghostPoint, snapResult, viewport);
+
+  // 14. Calibration line overlay
+  if (activeTool === 'calibrate') {
+    const calStart = state.wallChain.length > 0 ? state.wallChain[0] : null;
+    drawCalibrationLine(ctx, calStart, state.ghostPoint, viewport, state.ppcm);
+  } else if (state.calibrationLine) {
+    // Show the committed calibration line while input dialog is open
+    drawCalibrationLine(ctx, state.calibrationLine.start, state.calibrationLine.end, viewport, state.ppcm);
+  }
 }

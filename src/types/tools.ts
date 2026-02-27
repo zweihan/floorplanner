@@ -11,7 +11,8 @@ export type ToolType =
   | 'dimension'
   | 'text'
   | 'eraser'
-  | 'pan';
+  | 'pan'
+  | 'calibrate';
 
 export type LayerName = 'structure' | 'furniture' | 'annotations';
 

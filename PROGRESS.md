@@ -1,6 +1,6 @@
 # FloorPlanner — Implementation Progress
 
-## Status: Checkpoint 11 complete — awaiting review
+## Status: Checkpoint 12 complete — awaiting review
 
 ## Completed
 
@@ -17,6 +17,38 @@
 - [x] **Checkpoint 9 — Openings (Doors & Windows)** ✅
 - [x] **Checkpoint 10 — Furniture** ✅
 - [x] **Checkpoint 11 — Pan Tool, Opening Properties & Passages** ✅
+- [x] **Checkpoint 12 — Reference Image Tracing** ✅
+
+---
+
+## Checkpoint 12 — Reference Image Tracing (DONE)
+
+| File | What changed |
+|------|--------------|
+| `src/types/plan.ts` | Added `BackgroundImage` interface (`dataUrl`, `naturalWidth/Height`, `opacity`, `visible`, `offsetX/Y`, `cmPerPx`) |
+| `src/types/tools.ts` | Added `'calibrate'` to `ToolType` union |
+| `src/store/index.ts` | Added `backgroundImages: Record<string, BackgroundImage>` + `calibrationLine` to AppState; added `setBackgroundImage`, `updateBackgroundImage`, `setCalibrationLine` actions (not in undo history) |
+| `src/canvas/layers/backgroundImage.ts` | `drawBackgroundImage` renders image at world position with opacity; `drawCalibrationLine` draws orange dashed reference line |
+| `src/canvas/renderer.ts` | Step 1.5: draw background image before grid; step 14: draw calibration line |
+| `src/canvas/CanvasContainer.tsx` | Passes `backgroundImage` + `calibrationLine` to renderer; renders calibration length input modal overlay |
+| `src/canvas/interaction/useMouseEvents.ts` | `calibrate` tool: first click sets chain start, second click commits `calibrationLine` |
+| `src/components/BackgroundImagePanel.tsx` | Floating top-right panel: upload button when no image; eye toggle + opacity slider + calibrate + replace + clear when image loaded |
+
+Build: `tsc --noEmit` clean, `vite build` TBD, 120/120 tests.
+
+What you should see running `npm run dev`:
+
+- Top-right of canvas: **"Ref Image"** button
+- Click → file picker opens; select any JPG/PNG floor plan image
+- Image appears in canvas background at 40% opacity, scaled to fill viewport width
+- App automatically switches to **calibrate mode** (cursor changes, orange dot appears on first click)
+- Click two points that span a known real-world distance (e.g. a wall you know is 300 cm)
+- A dialog appears: enter `300` → click **Apply**
+- Image rescales so those two points are exactly 300 cm apart
+- Draw walls over the image to trace the floor plan
+- Use the **eye icon** to toggle image visibility while working
+- Drag the **opacity slider** to make the image more/less visible (5–100%)
+- Click **Calibrate** again to re-draw the reference line; click **×** to remove the image
 
 ---
 
@@ -194,7 +226,7 @@ What you should see running `npm run dev`:
 
 ---
 
-## Checkpoint 12 — Annotations (Dimensions + Text) [NEXT]
+## Checkpoint 13 — Annotations (Dimensions + Text) [NEXT]
 
 | File | What it does |
 |------|--------------|
@@ -208,7 +240,7 @@ Tests: dimension offset computation, `formatMeasurement` round-trip.
 
 ---
 
-## Checkpoint 13 — Export, Import & Multiple Plans
+## Checkpoint 14 — Export, Import & Multiple Plans
 
 | File | What it does |
 |------|--------------|
@@ -221,7 +253,7 @@ Tests: `newPlan`, `deletePlan`, `importJSON` round-trip.
 
 ---
 
-## Checkpoint 14 — Settings, Dark Theme & Polish
+## Checkpoint 15 — Settings, Dark Theme & Polish
 
 | File | What it does |
 |------|--------------|

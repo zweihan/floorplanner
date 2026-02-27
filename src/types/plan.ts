@@ -75,6 +75,17 @@ export interface TextLabel {
   align: 'left' | 'center' | 'right';
 }
 
+export interface BackgroundImage {
+  dataUrl: string;
+  naturalWidth: number;
+  naturalHeight: number;
+  opacity: number;    // 0–1; default 0.4
+  visible: boolean;
+  offsetX: number;    // world cm — top-left of image
+  offsetY: number;    // world cm — top-left of image
+  cmPerPx: number;    // cm per original image pixel
+}
+
 export interface Viewport {
   panX: number;            // pixels
   panY: number;

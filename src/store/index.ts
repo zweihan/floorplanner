@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { Plan, Point, Wall, Room, Opening, FurnitureItem, DimensionLine, TextLabel, Viewport } from '../types/plan';
+import type { Plan, Point, Wall, Room, Opening, FurnitureItem, DimensionLine, TextLabel, Viewport, BackgroundImage } from '../types/plan';
 import type { ToolType, LayerName, DrawingState, Toast } from '../types/tools';
 import type { UserSettings } from '../types/settings';
 import { uuid } from '../utils/uuid';
@@ -79,6 +79,10 @@ interface AppState {
   pendingFurnitureTemplateId: string | null;
   toasts: Toast[];
 
+  // Background reference images (keyed by planId; not part of undo history)
+  backgroundImages: Record<string, BackgroundImage>;
+  calibrationLine: { start: Point; end: Point } | null;
+
   // History
   past: Plan[];
   future: Plan[];
@@ -142,6 +146,10 @@ interface AppState {
   addToast(message: string, type?: Toast['type'], durationMs?: number): void;
   dismissToast(id: string): void;
 
+  setBackgroundImage(planId: string, bg: BackgroundImage | null): void;
+  updateBackgroundImage(planId: string, patch: Partial<BackgroundImage>): void;
+  setCalibrationLine(line: { start: Point; end: Point } | null): void;
+
   toggleShowGrid(): void;
   toggleSnapToGrid(): void;
   forceSave(): void;
@@ -189,6 +197,10 @@ export const useStore = create<AppState>((set, get) => ({
   layers: DEFAULT_LAYERS,
   pendingFurnitureTemplateId: null,
   toasts: [],
+
+  // Background reference images (not persisted, not in undo history)
+  backgroundImages: {},
+  calibrationLine: null,
 
   // History
   past: [],
@@ -587,6 +599,29 @@ export const useStore = create<AppState>((set, get) => ({
     const panX = (canvasWidth - plan.width * BASE_PX_PER_CM * zoom) / 2;
     const panY = (canvasHeight - plan.height * BASE_PX_PER_CM * zoom) / 2;
     get().setCamera({ zoom, panX, panY });
+  },
+
+  // ─── Background reference image ───────────────────────────────────────────
+  setBackgroundImage: (planId, bg) => {
+    set(s => {
+      if (!bg) {
+        const { [planId]: _removed, ...rest } = s.backgroundImages;
+        return { backgroundImages: rest };
+      }
+      return { backgroundImages: { ...s.backgroundImages, [planId]: bg } };
+    });
+  },
+
+  updateBackgroundImage: (planId, patch) => {
+    set(s => {
+      const existing = s.backgroundImages[planId];
+      if (!existing) return {};
+      return { backgroundImages: { ...s.backgroundImages, [planId]: { ...existing, ...patch } } };
+    });
+  },
+
+  setCalibrationLine: (line) => {
+    set({ calibrationLine: line });
   },
 }));
 

@@ -7,8 +7,10 @@ import { useMouseEvents } from './interaction/useMouseEvents';
 import { ScaleBar } from '../components/HUD/ScaleBar';
 import { CoordinateDisplay } from '../components/HUD/CoordinateDisplay';
 import { ZoomControls } from '../components/HUD/ZoomControls';
+import { BackgroundImagePanel } from '../components/BackgroundImagePanel';
 import type { SnapResult } from '../types/tools';
 import type { OpeningGhost } from './layers/openings';
+import { distance } from '../geometry/point';
 
 export function CanvasContainer() {
   const activePlanId = useStore(s => s.activePlanId);
@@ -25,7 +27,15 @@ export function CanvasContainer() {
   const activeTool = useStore(s => s.activeTool);
   const setCamera = useStore(s => s.setCamera);
 
+  // Background image state
+  const backgroundImages = useStore(s => s.backgroundImages);
+  const calibrationLine = useStore(s => s.calibrationLine);
+  const setCalibrationLine = useStore(s => s.setCalibrationLine);
+  const updateBackgroundImage = useStore(s => s.updateBackgroundImage);
+  const setActiveTool = useStore(s => s.setActiveTool);
+
   const plan = activePlanId ? plans[activePlanId] : null;
+  const backgroundImage = activePlanId ? (backgroundImages[activePlanId] ?? null) : null;
 
   // ─── Snap + rubber-band state from mouse handler ─────────────────────────
   const [snapResult, setSnapResult] = useState<SnapResult | null>(null);
@@ -37,6 +47,30 @@ export function CanvasContainer() {
 
   const [openingGhost, setOpeningGhost] = useState<OpeningGhost | null>(null);
   const onOpeningGhostChange = useCallback((ghost: OpeningGhost | null) => setOpeningGhost(ghost), []);
+
+  // ─── Calibration input state ──────────────────────────────────────────────
+  const [calibLengthInput, setCalibLengthInput] = useState('');
+
+  const confirmCalibration = useCallback(() => {
+    const realCm = parseFloat(calibLengthInput);
+    if (!realCm || realCm <= 0 || !activePlanId || !calibrationLine || !backgroundImage) return;
+    const dx = calibrationLine.end.x - calibrationLine.start.x;
+    const dy = calibrationLine.end.y - calibrationLine.start.y;
+    const worldDist = Math.hypot(dx, dy);
+    if (worldDist < 0.1) return;
+    const pixelDist = worldDist / backgroundImage.cmPerPx;
+    const newCmPerPx = realCm / pixelDist;
+    updateBackgroundImage(activePlanId, { cmPerPx: newCmPerPx });
+    setCalibrationLine(null);
+    setCalibLengthInput('');
+    setActiveTool('select');
+  }, [calibLengthInput, activePlanId, calibrationLine, backgroundImage, updateBackgroundImage, setCalibrationLine, setActiveTool]);
+
+  const cancelCalibration = useCallback(() => {
+    setCalibrationLine(null);
+    setCalibLengthInput('');
+    setActiveTool('select');
+  }, [setCalibrationLine, setActiveTool]);
 
   // ─── Render function ──────────────────────────────────────────────────────
   const renderFn = useCallback(
@@ -58,10 +92,12 @@ export function CanvasContainer() {
         rubberBandRect,
         activeTool,
         openingGhost,
+        backgroundImage,
+        calibrationLine,
         ppcm: PPCM,
       });
     },
-    [plan, settings, selectedIds, hoveredId, ghostPoint, wallChain, drawingState, showGrid, layers, pendingFurnitureTemplateId, snapResult, rubberBandRect, activeTool, openingGhost]
+    [plan, settings, selectedIds, hoveredId, ghostPoint, wallChain, drawingState, showGrid, layers, pendingFurnitureTemplateId, snapResult, rubberBandRect, activeTool, openingGhost, backgroundImage, calibrationLine]
   );
 
   const canvasRef = useCanvas(renderFn);
@@ -89,11 +125,65 @@ export function CanvasContainer() {
   return (
     <div className="relative flex-1 overflow-hidden">
       <canvas ref={canvasRef} data-tool={activeTool} />
+
       <div className="absolute inset-0 pointer-events-none">
+        {/* HUD elements */}
         <ScaleBar />
         <CoordinateDisplay />
         <ZoomControls />
+
+        {/* Background image panel — top-right of canvas */}
+        <div className="absolute top-2 right-2 pointer-events-auto">
+          <BackgroundImagePanel />
+        </div>
       </div>
+
+      {/* Calibration length input overlay — centered, blocks canvas interaction */}
+      {calibrationLine && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black/20 z-10">
+          <div className="bg-white border border-gray-300 rounded-lg shadow-xl p-5 flex flex-col gap-3 min-w-64">
+            <p className="text-sm font-medium text-gray-800">Set calibration length</p>
+            <p className="text-xs text-gray-500">
+              Line length:{' '}
+              <span className="font-mono">
+                {distance(calibrationLine.start, calibrationLine.end).toFixed(1)} world units
+              </span>
+            </p>
+            <p className="text-xs text-gray-500">Enter the real-world length this line represents:</p>
+            <div className="flex gap-2 items-center">
+              <input
+                autoFocus
+                type="number"
+                min="0.1"
+                step="1"
+                className="border border-gray-300 rounded px-2 py-1 text-sm flex-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Length in cm"
+                value={calibLengthInput}
+                onChange={e => setCalibLengthInput(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') confirmCalibration();
+                  if (e.key === 'Escape') cancelCalibration();
+                }}
+              />
+              <span className="text-xs text-gray-500">cm</span>
+            </div>
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={cancelCalibration}
+                className="px-3 py-1.5 text-xs text-gray-600 border border-gray-300 rounded hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmCalibration}
+                className="px-3 py-1.5 text-xs bg-blue-600 text-white rounded hover:bg-blue-700"
+              >
+                Apply
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
