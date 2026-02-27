@@ -74,6 +74,101 @@ export function drawSelection(
     drawSquare(ctx, sm.x, sm.y, '#ffffff', handleFill);
   }
 
+  // Furniture: dashed outline + corner handles + rotation handle
+  for (const item of plan.furniture) {
+    if (!idSet.has(item.id)) continue;
+
+    const rotRad = item.rotation * Math.PI / 180;
+    const cos = Math.cos(rotRad);
+    const sin = Math.sin(rotRad);
+    const hw = item.width / 2;
+    const hd = item.depth / 2;
+    const cx = item.position.x;
+    const cy = item.position.y;
+
+    // 4 rotated corners in world space (tl, tr, br, bl)
+    const worldCorners = [
+      { x: cx + cos * (-hw) - sin * (-hd), y: cy + sin * (-hw) + cos * (-hd) },
+      { x: cx + cos *   hw  - sin * (-hd), y: cy + sin *   hw  + cos * (-hd) },
+      { x: cx + cos *   hw  - sin *   hd,  y: cy + sin *   hw  + cos *   hd  },
+      { x: cx + cos * (-hw) - sin *   hd,  y: cy + sin * (-hw) + cos *   hd  },
+    ];
+    const sc = worldCorners.map(c => worldToScreen(c.x, c.y, viewport, ppcm));
+
+    // Dashed bounding outline
+    ctx.strokeStyle = outlineColor;
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([4, 3]);
+    ctx.beginPath();
+    ctx.moveTo(sc[0].x, sc[0].y);
+    for (let i = 1; i < sc.length; i++) ctx.lineTo(sc[i].x, sc[i].y);
+    ctx.closePath();
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Corner resize handles
+    for (const s of sc) drawSquare(ctx, s.x, s.y, handleFill, '#ffffff');
+
+    // Rotation handle: 24 screen-px above the top-center (local top = (0, -hd))
+    const topCenterWorld = { x: cx + sin * hd, y: cy - cos * hd };
+    const stc = worldToScreen(topCenterWorld.x, topCenterWorld.y, viewport, ppcm);
+    const rhx = stc.x + sin * 24;
+    const rhy = stc.y - cos * 24;
+
+    // Stem line
+    ctx.beginPath();
+    ctx.moveTo(stc.x, stc.y);
+    ctx.lineTo(rhx, rhy);
+    ctx.strokeStyle = outlineColor;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    // Rotation handle circle (8px radius)
+    ctx.beginPath();
+    ctx.arc(rhx, rhy, 4, 0, Math.PI * 2);
+    ctx.fillStyle = '#ffffff';
+    ctx.fill();
+    ctx.strokeStyle = handleFill;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  }
+
+  // Openings: dashed rectangle aligned to wall direction
+  for (const opening of plan.openings) {
+    if (!idSet.has(opening.id)) continue;
+    const wall = plan.walls.find(w => w.id === opening.wallId);
+    if (!wall) continue;
+    const dx = wall.end.x - wall.start.x;
+    const dy = wall.end.y - wall.start.y;
+    const wallLen = Math.hypot(dx, dy);
+    if (wallLen < 1) continue;
+    const ux = dx / wallLen;
+    const uy = dy / wallLen;
+    const cx = wall.start.x + ux * wallLen * opening.position;
+    const cy = wall.start.y + uy * wallLen * opening.position;
+    const hw = opening.width / 2;
+    const ht = wall.thickness / 2;
+    const worldCorners = [
+      { x: cx + ux * hw - uy * ht, y: cy + uy * hw + ux * ht },
+      { x: cx + ux * hw + uy * ht, y: cy + uy * hw - ux * ht },
+      { x: cx - ux * hw + uy * ht, y: cy - uy * hw - ux * ht },
+      { x: cx - ux * hw - uy * ht, y: cy - uy * hw + ux * ht },
+    ];
+    const sc = worldCorners.map(c => worldToScreen(c.x, c.y, viewport, ppcm));
+    ctx.strokeStyle = outlineColor;
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([4, 3]);
+    ctx.beginPath();
+    ctx.moveTo(sc[0].x, sc[0].y);
+    for (let i = 1; i < sc.length; i++) ctx.lineTo(sc[i].x, sc[i].y);
+    ctx.closePath();
+    ctx.stroke();
+    ctx.setLineDash([]);
+    // Center handle
+    const sc_center = worldToScreen(cx, cy, viewport, ppcm);
+    drawSquare(ctx, sc_center.x, sc_center.y, '#ffffff', handleFill);
+  }
+
   // Rooms: dashed outline (Phase 2 will add full room support)
   for (const room of plan.rooms) {
     if (!idSet.has(room.id)) continue;

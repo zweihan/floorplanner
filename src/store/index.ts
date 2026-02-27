@@ -86,6 +86,8 @@ interface AppState {
   // ─── Actions ───────────────────────────────────────────────────────────────
   addWall(start: Point, end: Point): void;
   updateWall(id: string, changes: Partial<Wall>): void;
+  /** Set wall length by moving end endpoint along current direction; auto-updates joined walls. */
+  setWallLength(id: string, newLengthCm: number): void;
   deleteWall(id: string): void;
 
   addOpening(opening: Omit<Opening, 'id'>): void;
@@ -205,6 +207,33 @@ export const useStore = create<AppState>((set, get) => ({
       ...plan,
       walls: plan.walls.map(w => w.id === id ? { ...w, ...changes } : w),
     }));
+  },
+
+  setWallLength: (id, newLengthCm) => {
+    withHistory(set, get, plan => {
+      const wall = plan.walls.find(w => w.id === id);
+      if (!wall) return plan;
+      const dx = wall.end.x - wall.start.x;
+      const dy = wall.end.y - wall.start.y;
+      const currentLen = Math.hypot(dx, dy);
+      if (currentLen < 0.01) return plan; // degenerate — no direction to follow
+      const dirX = dx / currentLen;
+      const dirY = dy / currentLen;
+      const newEnd = {
+        x: wall.start.x + dirX * newLengthCm,
+        y: wall.start.y + dirY * newLengthCm,
+      };
+      const oldEnd = wall.end;
+      return {
+        ...plan,
+        walls: plan.walls.map(w => {
+          if (w.id === id) return { ...w, end: newEnd };
+          if (Math.hypot(w.start.x - oldEnd.x, w.start.y - oldEnd.y) < 1.0) return { ...w, start: newEnd };
+          if (Math.hypot(w.end.x - oldEnd.x, w.end.y - oldEnd.y) < 1.0) return { ...w, end: newEnd };
+          return w;
+        }),
+      };
+    });
   },
 
   deleteWall: (id) => {

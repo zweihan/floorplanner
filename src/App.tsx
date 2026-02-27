@@ -3,6 +3,8 @@ import { CanvasContainer } from './canvas/CanvasContainer';
 import { useKeyboardShortcuts } from './canvas/interaction/useKeyboardShortcuts';
 import { usePlanPersistence } from './hooks/usePlanPersistence';
 import { ToastContainer } from './components/ToastContainer';
+import { PropertiesPanel } from './components/PropertiesPanel';
+import { FurniturePanel } from './components/FurniturePanel';
 
 // Placeholder components — will be implemented in subsequent checkpoints
 function Header() {
@@ -22,7 +24,7 @@ function Header() {
 function Toolbar() {
   const activeTool = useStore(s => s.activeTool);
   const setActiveTool = useStore(s => s.setActiveTool);
-  const tools = ['select', 'wall', 'room', 'door', 'window', 'furniture', 'dimension', 'text', 'eraser', 'pan'] as const;
+  const tools = ['select', 'wall', 'room', 'door', 'window', 'opening', 'furniture', 'dimension', 'text', 'eraser', 'pan'] as const;
 
   return (
     <div className="w-12 bg-white border-r border-gray-200 flex flex-col items-center py-2 gap-1 shrink-0">
@@ -42,19 +44,6 @@ function Toolbar() {
 }
 
 
-function PropertiesPanel() {
-  const selectedIds = useStore(s => s.selectedIds);
-  return (
-    <aside className="w-60 bg-white border-l border-gray-200 shrink-0 p-3">
-      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Properties</p>
-      {selectedIds.length === 0 ? (
-        <p className="text-xs text-gray-400">Nothing selected</p>
-      ) : (
-        <p className="text-xs text-gray-600">{selectedIds.length} item(s) selected</p>
-      )}
-    </aside>
-  );
-}
 
 function StatusBar() {
   const activeTool = useStore(s => s.activeTool);
@@ -68,11 +57,13 @@ function StatusBar() {
 export default function App() {
   useKeyboardShortcuts();
   usePlanPersistence();
+  const activeTool = useStore(s => s.activeTool);
   return (
     <div className="flex flex-col h-screen w-screen overflow-hidden bg-gray-50">
       <Header />
       <div className="flex flex-1 overflow-hidden">
         <Toolbar />
+        {activeTool === 'furniture' && <FurniturePanel />}
         <CanvasContainer />
         <PropertiesPanel />
       </div>

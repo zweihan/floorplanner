@@ -32,7 +32,7 @@ export interface Room {
 export interface Opening {
   id: string;
   wallId: string;
-  type: 'door' | 'window' | 'sliding-door' | 'double-door' | 'bay-window';
+  type: 'door' | 'window' | 'sliding-door' | 'double-door' | 'bay-window' | 'opening';
   position: number;        // 0.0–1.0 parametric along parent wall
   width: number;           // cm
   height: number;          // cm

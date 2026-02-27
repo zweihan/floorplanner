@@ -99,7 +99,9 @@ export function useKeyboardShortcuts(): void {
         case 'r': setActiveTool('room'); break;
         case 'd': setActiveTool('door'); break;
         case 'n': setActiveTool('window'); break;
+        case 'o': setActiveTool('opening'); break;
         case 'f': setActiveTool('furniture'); break;
+        case 'h': setActiveTool('pan'); break;
         case 'm': setActiveTool('dimension'); break;
         case 't': setActiveTool('text'); break;
         case 'e': setActiveTool('eraser'); break;

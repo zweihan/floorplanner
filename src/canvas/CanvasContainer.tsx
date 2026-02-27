@@ -8,6 +8,7 @@ import { ScaleBar } from '../components/HUD/ScaleBar';
 import { CoordinateDisplay } from '../components/HUD/CoordinateDisplay';
 import { ZoomControls } from '../components/HUD/ZoomControls';
 import type { SnapResult } from '../types/tools';
+import type { OpeningGhost } from './layers/openings';
 
 export function CanvasContainer() {
   const activePlanId = useStore(s => s.activePlanId);
@@ -34,6 +35,9 @@ export function CanvasContainer() {
   const [rubberBandRect, setRubberBandRect] = useState<RubberBandRect | null>(null);
   const onRubberBandChange = useCallback((rect: RubberBandRect | null) => setRubberBandRect(rect), []);
 
+  const [openingGhost, setOpeningGhost] = useState<OpeningGhost | null>(null);
+  const onOpeningGhostChange = useCallback((ghost: OpeningGhost | null) => setOpeningGhost(ghost), []);
+
   // ─── Render function ──────────────────────────────────────────────────────
   const renderFn = useCallback(
     (ctx: CanvasRenderingContext2D, w: number, h: number) => {
@@ -52,16 +56,18 @@ export function CanvasContainer() {
         pendingFurnitureTemplateId,
         snapResult,
         rubberBandRect,
+        activeTool,
+        openingGhost,
         ppcm: PPCM,
       });
     },
-    [plan, settings, selectedIds, hoveredId, ghostPoint, wallChain, drawingState, showGrid, layers, pendingFurnitureTemplateId, snapResult, rubberBandRect]
+    [plan, settings, selectedIds, hoveredId, ghostPoint, wallChain, drawingState, showGrid, layers, pendingFurnitureTemplateId, snapResult, rubberBandRect, activeTool, openingGhost]
   );
 
   const canvasRef = useCanvas(renderFn);
 
   // ─── Wire all mouse interaction ───────────────────────────────────────────
-  useMouseEvents(canvasRef, onSnapChange, onRubberBandChange);
+  useMouseEvents(canvasRef, onSnapChange, onRubberBandChange, onOpeningGhostChange);
 
   // ─── Scroll wheel: zoom centred on cursor ─────────────────────────────────
   const planRef = useRef(plan);

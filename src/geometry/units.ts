@@ -23,6 +23,24 @@ export function formatMeasurement(cm: number, unit: DisplayUnit): string {
   return `${Math.round(cm)} cm`;
 }
 
+/**
+ * Parses a user-typed length string into centimetres.
+ * Handles the plan's current display unit:
+ *   cm  → bare number, e.g. "200"
+ *   m   → bare number interpreted as metres, e.g. "2" → 200 cm
+ *   ft  → delegates to parseImperialInput ("6' 6\"", "6.5", etc.)
+ * Returns null for empty / unparseable / non-positive input.
+ */
+export function parseLength(input: string, unit: DisplayUnit): number | null {
+  const trimmed = input.trim();
+  if (!trimmed) return null;
+  if (unit === 'ft') return parseImperialInput(trimmed);
+  const n = parseFloat(trimmed);
+  if (isNaN(n) || n <= 0) return null;
+  if (unit === 'm') return n * 100;
+  return n; // cm
+}
+
 /** Parses imperial string "12' 6\"" or decimal feet "12.5" → cm. */
 export function parseImperialInput(input: string): number | null {
   const ftIn = input.match(/^(\d+)'\s*(\d+)"?$/);

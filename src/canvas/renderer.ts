@@ -1,14 +1,18 @@
-import type { Plan, Viewport, Point } from '../types/plan';
+import type { Plan, Viewport, Point, Opening } from '../types/plan';
 import type { UserSettings } from '../types/settings';
-import type { LayerName, DrawingState, SnapResult } from '../types/tools';
+import type { LayerName, DrawingState, SnapResult, ToolType } from '../types/tools';
 import { worldToScreen } from '../geometry/transforms';
 import { drawBackground } from './layers/background';
 import { drawGrid } from './layers/grid';
+import { drawRooms, drawRoomPreview } from './layers/rooms';
 import { drawWalls } from './layers/walls';
+import { drawOpenings, drawOpeningGhost, type OpeningGhost } from './layers/openings';
 import { drawWallLabels } from './layers/labels';
 import { drawPreview } from './layers/preview';
 import { drawSnapIndicators } from './layers/snapIndicators';
 import { drawSelection } from './layers/selection';
+import { drawFurniture, drawFurnitureGhost } from './layers/furniture';
+import { getTemplate } from '../data/furnitureTemplates';
 
 export interface RenderState {
   plan: Plan;
@@ -24,6 +28,8 @@ export interface RenderState {
   pendingFurnitureTemplateId: string | null;
   snapResult: SnapResult | null;
   rubberBandRect: { x1: number; y1: number; x2: number; y2: number } | null;
+  activeTool: ToolType;
+  openingGhost: OpeningGhost | null;
   ppcm: number; // always 4
 }
 
@@ -37,7 +43,7 @@ export function render(
   height: number,
   state: RenderState
 ): void {
-  const { plan, viewport, settings, showGrid, layers, wallChain, ghostPoint, snapResult, selectedIds } = state;
+  const { plan, viewport, settings, showGrid, layers, wallChain, ghostPoint, snapResult, selectedIds, activeTool } = state;
 
   // 1. Background
   drawBackground(ctx, width, height, settings);
@@ -47,18 +53,28 @@ export function render(
     drawGrid(ctx, width, height, viewport, plan.gridSize, state.ppcm, settings);
   }
 
-  // 3. Room fills — Phase 2
-  // 4. Furniture — Phase 3
-
-  // 5–6. Walls
+  // 3. Room fills
   if (layers.structure.visible) {
-    drawWalls(ctx, plan.walls, viewport, settings, state.ppcm);
+    drawRooms(ctx, plan.rooms, viewport, settings, state.ppcm);
   }
 
-  // 7. Openings — Phase 3
+  // 4. Furniture
+  if (layers.furniture.visible) {
+    drawFurniture(ctx, plan.furniture, viewport, settings, state.ppcm);
+  }
+
+  // 5–6. Walls (with opening gaps)
+  if (layers.structure.visible) {
+    drawWalls(ctx, plan.walls, plan.openings, viewport, settings, state.ppcm);
+  }
+
+  // 7. Opening symbols
+  if (layers.structure.visible) {
+    drawOpenings(ctx, plan.walls, plan.openings, viewport, settings, state.ppcm);
+  }
+
   // 8. Dimension lines — Phase 3
   // 9. Text labels — Phase 3
-  // 10. Room labels — Phase 2
 
   // 10. Wall length labels (shown when showDimensions is on)
   if (settings.showDimensions && layers.structure.visible) {
@@ -68,8 +84,25 @@ export function render(
   // 11. Selection UI
   drawSelection(ctx, plan, selectedIds, viewport, settings, state.ppcm);
 
-  // 12. Tool preview (ghost wall)
-  drawPreview(ctx, wallChain, ghostPoint, viewport, settings, settings.defaultWallThickness);
+  // 11b. Opening placement ghost
+  if (state.openingGhost && (activeTool === 'door' || activeTool === 'window' || activeTool === 'opening')) {
+    drawOpeningGhost(ctx, plan.walls, state.openingGhost, activeTool as Opening['type'], plan.viewport, state.ppcm);
+  }
+
+  // 11c. Furniture placement ghost
+  if (activeTool === 'furniture' && state.ghostPoint && state.pendingFurnitureTemplateId) {
+    const template = getTemplate(state.pendingFurnitureTemplateId);
+    if (template) {
+      drawFurnitureGhost(ctx, template, state.ghostPoint, viewport, state.ppcm);
+    }
+  }
+
+  // 12. Tool preview (ghost wall or room polygon)
+  if (activeTool === 'room') {
+    drawRoomPreview(ctx, wallChain, ghostPoint, viewport, state.ppcm);
+  } else {
+    drawPreview(ctx, wallChain, ghostPoint, viewport, settings, settings.defaultWallThickness);
+  }
 
   // 12b. Rubber-band selection rect
   if (state.rubberBandRect) {
