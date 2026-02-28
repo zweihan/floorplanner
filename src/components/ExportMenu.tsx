@@ -1,9 +1,10 @@
 import { useRef, useState } from 'react';
 import { useStore } from '../store';
-import { exportPNG } from '../canvas/export';
+import { exportPNG, exportPDF } from '../canvas/export';
 
 export function ExportMenu() {
   const [open, setOpen] = useState(false);
+  const [includeDimensions, setIncludeDimensions] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const activePlanId = useStore(s => s.activePlanId);
@@ -16,7 +17,13 @@ export function ExportMenu() {
   function handleExportPNG(scale: 1 | 2 | 4) {
     if (!activePlanId) return;
     setOpen(false);
-    exportPNG(plans[activePlanId], settings, scale);
+    exportPNG(plans[activePlanId], settings, scale, includeDimensions);
+  }
+
+  async function handleExportPDF() {
+    if (!activePlanId) return;
+    setOpen(false);
+    await exportPDF(plans[activePlanId], settings, includeDimensions);
   }
 
   function handleExportJSON() {
@@ -52,7 +59,6 @@ export function ExportMenu() {
       }
     };
     reader.readAsText(file);
-    // Reset so same file can be re-imported
     e.target.value = '';
   }
 
@@ -69,7 +75,21 @@ export function ExportMenu() {
         <>
           {/* Backdrop */}
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 top-8 z-50 bg-white border border-gray-200 rounded shadow-lg py-1 w-44">
+          <div className="absolute right-0 top-8 z-50 bg-white border border-gray-200 rounded shadow-lg py-1 w-48">
+
+            {/* Options */}
+            <label className="flex items-center gap-2 px-3 py-1.5 text-sm cursor-pointer hover:bg-gray-50">
+              <input
+                type="checkbox"
+                checked={includeDimensions}
+                onChange={e => setIncludeDimensions(e.target.checked)}
+                className="accent-blue-600"
+              />
+              Wall labels
+            </label>
+            <hr className="my-1 border-gray-100" />
+
+            {/* PNG */}
             <div className="px-3 py-1 text-xs text-gray-400 uppercase tracking-wide">PNG</div>
             {([1, 2, 4] as const).map(scale => (
               <button
@@ -81,6 +101,18 @@ export function ExportMenu() {
               </button>
             ))}
             <hr className="my-1 border-gray-100" />
+
+            {/* PDF */}
+            <div className="px-3 py-1 text-xs text-gray-400 uppercase tracking-wide">PDF</div>
+            <button
+              onClick={handleExportPDF}
+              className="w-full text-left px-4 py-1.5 text-sm hover:bg-gray-50"
+            >
+              Export PDF
+            </button>
+            <hr className="my-1 border-gray-100" />
+
+            {/* JSON */}
             <div className="px-3 py-1 text-xs text-gray-400 uppercase tracking-wide">JSON</div>
             <button
               onClick={handleExportJSON}
