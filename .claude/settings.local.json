@@ -11,7 +11,8 @@
       "Bash(ls:*)",
       "Bash(npx vitest:*)",
       "mcp__plugin_serena_serena__list_dir",
-      "Bash(wc:*)"
+      "Bash(wc:*)",
+      "Bash(node:*)"
     ]
   }
 }

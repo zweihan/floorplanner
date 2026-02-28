@@ -306,6 +306,23 @@ What you should see running `npm run dev`:
 
 ---
 
+---
+
+## Checkpoint 16 — Polish & Gap Closure (IN PROGRESS)
+
+| Task | File | What changed |
+|------|------|--------------|
+| ✅ Toolbar icons | `src/App.tsx` | `TOOL_META` array with lucide-react icons; icon buttons with `aria-label` + `title` key hints |
+| ✅ PropertiesPanel fields | `src/components/PropertiesPanel.tsx` | Wall: editable start/end X/Y coordinates via `updateWallEndpoints`; Document: Width/Height fields; Furniture: Position X/Y inputs + Lock checkbox |
+| ✅ Keyboard shortcuts | `src/canvas/interaction/useKeyboardShortcuts.ts` | `Ctrl+E` → export PNG 1×; `Ctrl+Shift+F` → fit to screen |
+| ⬜ Cascade-delete toasts | `src/store/index.ts` | Toast when deleting a wall removes attached openings |
+| ⬜ Layer Panel UI | `src/components/LayerPanel.tsx` | Eye/lock toggles per layer |
+| ⬜ Furniture Panel accordion | `src/components/FurniturePanel.tsx` | Group templates by `category` in collapsible sections |
+
+Build: `tsc --noEmit` clean, 132/132 tests.
+
+---
+
 ## Next steps (post-Checkpoint 15)
 
 The project is now feature-complete per the original spec. Potential polish:

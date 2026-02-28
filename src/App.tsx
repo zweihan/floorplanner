@@ -1,4 +1,8 @@
 import { useState, useEffect } from 'react';
+import {
+  MousePointer2, PenLine, Pentagon, DoorOpen, AppWindow, Square,
+  Sofa, Ruler, Type, Eraser, Hand,
+} from 'lucide-react';
 import { useStore } from './store';
 import { CanvasContainer } from './canvas/CanvasContainer';
 import { useKeyboardShortcuts } from './canvas/interaction/useKeyboardShortcuts';
@@ -90,22 +94,36 @@ function Header({ onOpenSettings }: { onOpenSettings(): void }) {
   );
 }
 
+const TOOL_META = [
+  { tool: 'select',    label: 'Select',    key: 'V', Icon: MousePointer2 },
+  { tool: 'wall',      label: 'Wall',      key: 'W', Icon: PenLine       },
+  { tool: 'room',      label: 'Room',      key: 'R', Icon: Pentagon       },
+  { tool: 'door',      label: 'Door',      key: 'D', Icon: DoorOpen       },
+  { tool: 'window',    label: 'Window',    key: 'N', Icon: AppWindow      },
+  { tool: 'opening',   label: 'Opening',   key: 'O', Icon: Square         },
+  { tool: 'furniture', label: 'Furniture', key: 'F', Icon: Sofa           },
+  { tool: 'dimension', label: 'Dimension', key: 'M', Icon: Ruler          },
+  { tool: 'text',      label: 'Text',      key: 'T', Icon: Type           },
+  { tool: 'eraser',    label: 'Eraser',    key: 'E', Icon: Eraser         },
+  { tool: 'pan',       label: 'Pan',       key: 'H', Icon: Hand           },
+] as const;
+
 function Toolbar() {
   const activeTool = useStore(s => s.activeTool);
   const setActiveTool = useStore(s => s.setActiveTool);
-  const tools = ['select', 'wall', 'room', 'door', 'window', 'opening', 'furniture', 'dimension', 'text', 'eraser', 'pan'] as const;
 
   return (
     <div className="fp-toolbar w-12 bg-white border-r border-gray-200 flex flex-col items-center py-2 gap-1 shrink-0">
-      {tools.map(tool => (
+      {TOOL_META.map(({ tool, label, key, Icon }) => (
         <button
           key={tool}
-          title={tool}
+          title={`${label} (${key})`}
+          aria-label={`${label} (${key})`}
           onClick={() => setActiveTool(tool)}
-          className={`w-8 h-8 rounded text-xs font-mono uppercase flex items-center justify-center
+          className={`w-8 h-8 rounded flex items-center justify-center
             ${activeTool === tool ? 'bg-accent text-white' : 'text-gray-500 hover:bg-gray-100'}`}
         >
-          {tool[0]}
+          <Icon size={16} />
         </button>
       ))}
     </div>

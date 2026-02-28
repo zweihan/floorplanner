@@ -22,6 +22,7 @@ function WallProperties({ wallId }: { wallId: string }) {
   const plan = useStore(s => s.plans[s.activePlanId!]);
   const updateWall = useStore(s => s.updateWall);
   const setWallLength = useStore(s => s.setWallLength);
+  const updateWallEndpoints = useStore(s => s.updateWallEndpoints);
   const wall = plan?.walls.find(w => w.id === wallId);
 
   const [thickness, setThickness] = useState(wall?.thickness ?? 15);
@@ -123,13 +124,45 @@ function WallProperties({ wallId }: { wallId: string }) {
         </div>
       </Row>
 
-      <div className="border-t border-gray-100 pt-2 space-y-1">
-        <p className="text-xs text-gray-400 font-mono">
-          Start ({wall.start.x.toFixed(1)}, {wall.start.y.toFixed(1)})
-        </p>
-        <p className="text-xs text-gray-400 font-mono">
-          End ({wall.end.x.toFixed(1)}, {wall.end.y.toFixed(1)})
-        </p>
+      <div className="border-t border-gray-100 pt-2 space-y-2">
+        <p className="text-xs text-gray-400 uppercase tracking-wide">Start</p>
+        <div className="grid grid-cols-2 gap-1">
+          {(['x', 'y'] as const).map(axis => (
+            <div key={`start-${axis}`} className="flex items-center gap-1">
+              <span className="text-xs text-gray-400 w-3">{axis.toUpperCase()}</span>
+              <input
+                type="number" step={0.1}
+                defaultValue={wall.start[axis].toFixed(1)}
+                key={wall.start[axis].toFixed(1)}
+                onBlur={e => {
+                  const v = parseFloat(e.target.value);
+                  if (!isNaN(v)) updateWallEndpoints([{ id: wallId, endpoint: 'start', position: { ...wall.start, [axis]: v } }]);
+                }}
+                onKeyDown={e => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
+                className="w-full border border-gray-300 rounded px-1.5 py-0.5 text-xs text-right font-mono focus:outline-none focus:ring-1 focus:ring-blue-400"
+              />
+            </div>
+          ))}
+        </div>
+        <p className="text-xs text-gray-400 uppercase tracking-wide">End</p>
+        <div className="grid grid-cols-2 gap-1">
+          {(['x', 'y'] as const).map(axis => (
+            <div key={`end-${axis}`} className="flex items-center gap-1">
+              <span className="text-xs text-gray-400 w-3">{axis.toUpperCase()}</span>
+              <input
+                type="number" step={0.1}
+                defaultValue={wall.end[axis].toFixed(1)}
+                key={wall.end[axis].toFixed(1)}
+                onBlur={e => {
+                  const v = parseFloat(e.target.value);
+                  if (!isNaN(v)) updateWallEndpoints([{ id: wallId, endpoint: 'end', position: { ...wall.end, [axis]: v } }]);
+                }}
+                onKeyDown={e => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
+                className="w-full border border-gray-300 rounded px-1.5 py-0.5 text-xs text-right font-mono focus:outline-none focus:ring-1 focus:ring-blue-400"
+              />
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -143,10 +176,12 @@ function DocumentProperties() {
 
   const [name, setName] = useState(plan?.name ?? '');
   const [gridSize, setGridSize] = useState(plan?.gridSize ?? 10);
+  const [docWidth, setDocWidth] = useState(plan?.width ?? 1000);
+  const [docHeight, setDocHeight] = useState(plan?.height ?? 800);
 
   useEffect(() => {
-    if (plan) { setName(plan.name); setGridSize(plan.gridSize); }
-  }, [plan?.name, plan?.gridSize]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (plan) { setName(plan.name); setGridSize(plan.gridSize); setDocWidth(plan.width); setDocHeight(plan.height); }
+  }, [plan?.name, plan?.gridSize, plan?.width, plan?.height]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!plan) return null;
 
@@ -160,6 +195,12 @@ function DocumentProperties() {
     const v = Math.max(1, Math.min(100, gridSize));
     setGridSize(v);
     if (v !== plan.gridSize) updateDocument({ gridSize: v });
+  };
+
+  const commitDocDim = (field: 'width' | 'height', value: number) => {
+    const v = Math.max(10, value);
+    if (field === 'width') { setDocWidth(v); if (v !== plan.width) updateDocument({ width: v }); }
+    else { setDocHeight(v); if (v !== plan.height) updateDocument({ height: v }); }
   };
 
   return (
@@ -198,6 +239,30 @@ function DocumentProperties() {
             onChange={e => setGridSize(Number(e.target.value))}
             onBlur={commitGridSize}
             onKeyDown={e => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
+            className="w-full border border-gray-300 rounded px-2 py-0.5 text-xs text-right focus:outline-none focus:ring-1 focus:ring-blue-400"
+          />
+          <span className="text-xs text-gray-400 shrink-0">cm</span>
+        </div>
+      </Row>
+
+      <Row label="Width">
+        <div className="flex items-center gap-1">
+          <input type="number" min={10} step={10} value={docWidth}
+            onChange={e => setDocWidth(Number(e.target.value))}
+            onBlur={() => commitDocDim('width', docWidth)}
+            onKeyDown={e => e.key === 'Enter' && commitDocDim('width', docWidth)}
+            className="w-full border border-gray-300 rounded px-2 py-0.5 text-xs text-right focus:outline-none focus:ring-1 focus:ring-blue-400"
+          />
+          <span className="text-xs text-gray-400 shrink-0">cm</span>
+        </div>
+      </Row>
+
+      <Row label="Height">
+        <div className="flex items-center gap-1">
+          <input type="number" min={10} step={10} value={docHeight}
+            onChange={e => setDocHeight(Number(e.target.value))}
+            onBlur={() => commitDocDim('height', docHeight)}
+            onKeyDown={e => e.key === 'Enter' && commitDocDim('height', docHeight)}
             className="w-full border border-gray-300 rounded px-2 py-0.5 text-xs text-right focus:outline-none focus:ring-1 focus:ring-blue-400"
           />
           <span className="text-xs text-gray-400 shrink-0">cm</span>
@@ -519,6 +584,41 @@ function FurnitureProperties({ furnitureId }: { furnitureId: string }) {
             className="w-8 h-6 border border-gray-300 rounded cursor-pointer p-0"
           />
           <span className="text-xs text-gray-400 font-mono">{item.color}</span>
+        </div>
+      </Row>
+
+      <Row label="Pos X">
+        <div className="flex items-center gap-1">
+          <input type="number" step={0.1}
+            defaultValue={item.position.x.toFixed(1)}
+            key={item.position.x.toFixed(1)}
+            onBlur={e => { const v = parseFloat(e.target.value); if (!isNaN(v)) updateFurniture(furnitureId, { position: { ...item.position, x: v } }); }}
+            onKeyDown={e => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
+            className="w-full border border-gray-300 rounded px-2 py-0.5 text-xs text-right font-mono focus:outline-none focus:ring-1 focus:ring-blue-400"
+          />
+          <span className="text-xs text-gray-400 shrink-0">cm</span>
+        </div>
+      </Row>
+
+      <Row label="Pos Y">
+        <div className="flex items-center gap-1">
+          <input type="number" step={0.1}
+            defaultValue={item.position.y.toFixed(1)}
+            key={item.position.y.toFixed(1)}
+            onBlur={e => { const v = parseFloat(e.target.value); if (!isNaN(v)) updateFurniture(furnitureId, { position: { ...item.position, y: v } }); }}
+            onKeyDown={e => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
+            className="w-full border border-gray-300 rounded px-2 py-0.5 text-xs text-right font-mono focus:outline-none focus:ring-1 focus:ring-blue-400"
+          />
+          <span className="text-xs text-gray-400 shrink-0">cm</span>
+        </div>
+      </Row>
+
+      <Row label="Locked">
+        <div className="flex justify-end">
+          <input type="checkbox" checked={item.locked}
+            onChange={e => updateFurniture(furnitureId, { locked: e.target.checked })}
+            className="w-4 h-4 rounded border-gray-300 accent-blue-600 cursor-pointer"
+          />
         </div>
       </Row>
     </div>

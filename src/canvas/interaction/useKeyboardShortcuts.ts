@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useStore } from '../../store';
+import { exportPNG } from '../export';
 import type { ToolType } from '../../types/tools';
 import type { Point } from '../../types/plan';
 
@@ -21,6 +22,7 @@ export function useKeyboardShortcuts(): void {
   const zoomOut = useStore(s => s.zoomOut);
   const setCamera = useStore(s => s.setCamera);
   const setSelectedIds = useStore(s => s.setSelectedIds);
+  const fitToScreen = useStore(s => s.fitToScreen);
 
   // Reactive values read by handlers
   const activeTool = useStore(s => s.activeTool);
@@ -88,6 +90,21 @@ export function useKeyboardShortcuts(): void {
             e.preventDefault();
             setCamera({ zoom: 1.0, panX: 0, panY: 0 });
             break;
+          case 'e':
+            e.preventDefault();
+            {
+              const { plans, activePlanId, settings } = useStore.getState();
+              const plan = activePlanId ? plans[activePlanId] : null;
+              if (plan) exportPNG(plan, settings);
+            }
+            break;
+          case 'f':
+            if (e.shiftKey) {
+              e.preventDefault();
+              const canvas = document.querySelector('canvas');
+              fitToScreen(canvas?.clientWidth ?? window.innerWidth, canvas?.clientHeight ?? window.innerHeight);
+            }
+            break;
         }
         return;
       }
@@ -122,6 +139,6 @@ export function useKeyboardShortcuts(): void {
   }, [
     setActiveTool, undo, redo, clearChain, deleteElements, selectAll,
     toggleShowGrid, toggleSnapToGrid, forceSave, zoomIn, zoomOut,
-    setCamera, setSelectedIds,
+    setCamera, setSelectedIds, fitToScreen,
   ]);
 }
