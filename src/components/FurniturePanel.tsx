@@ -43,7 +43,7 @@ export function FurniturePanel() {
   }
 
   return (
-    <div className="w-28 bg-white border-r border-gray-200 shrink-0 flex flex-col overflow-hidden">
+    <div className="fp-panel w-28 bg-white border-r border-gray-200 shrink-0 flex flex-col overflow-hidden">
       <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide px-2 pt-2 pb-1">
         Furniture
       </p>

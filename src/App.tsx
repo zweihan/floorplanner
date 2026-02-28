@@ -165,7 +165,7 @@ export default function App() {
         <Toolbar />
         {activeTool === 'furniture' && <FurniturePanel />}
         <CanvasContainer />
-        <div className="w-60 bg-white border-l border-gray-200 shrink-0 flex flex-col overflow-hidden">
+        <div className="fp-panel w-60 bg-white border-l border-gray-200 shrink-0 flex flex-col overflow-hidden">
           <PropertiesPanel />
           <LayerPanel />
         </div>

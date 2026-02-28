@@ -35,6 +35,11 @@
   outline: none;
 }
 
+/* Button hover inside dark panels */
+.dark .fp-panel button:hover {
+  background-color: #374151;
+}
+
 /* Scrollable areas */
 .dark .fp-panel::-webkit-scrollbar-track { background: #1f2937; }
 .dark .fp-panel::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 3px; }
