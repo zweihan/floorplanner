@@ -4,7 +4,7 @@ export const DEFAULT_SETTINGS: UserSettings = {
   displayUnit: 'cm',
   defaultWallThickness: 15,
   defaultGridSize: 10,
-  snapToGrid: true,
+  snapToGrid: false,
   snapToEndpoint: true,
   snapToMidpoint: false,
   snapToAngle: true,

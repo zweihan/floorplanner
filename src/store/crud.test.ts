@@ -145,3 +145,78 @@ describe('setWallLength', () => {
     expect(() => getState().setWallLength(wallId, 100)).not.toThrow();
   });
 });
+
+// ─── Checkpoint 14: Plan management & JSON round-trip ─────────────────────────
+
+describe('newPlan', () => {
+  test('creates a new plan with given name and switches to it', () => {
+    getState().newPlan('My New Plan');
+    const { activePlanId, plans } = useStore.getState();
+    expect(activePlanId).toBeTruthy();
+    expect(plans[activePlanId!].name).toBe('My New Plan');
+  });
+
+  test('new plan starts with empty walls array', () => {
+    getState().newPlan('Empty Plan');
+    expect(getActivePlan().walls).toHaveLength(0);
+  });
+
+  test('new plan clears undo history', () => {
+    getState().addWall({ x: 0, y: 0 }, { x: 100, y: 0 });
+    getState().newPlan('Fresh');
+    expect(useStore.getState().past).toHaveLength(0);
+    expect(useStore.getState().future).toHaveLength(0);
+  });
+});
+
+describe('deletePlan', () => {
+  test('removing the only plan creates a fresh default plan', () => {
+    const onlyId = useStore.getState().activePlanId!;
+    const allIds = Object.keys(useStore.getState().plans);
+    // Delete all but the active one, then delete the active one
+    allIds.filter(id => id !== onlyId).forEach(id => getState().deletePlan(id));
+    getState().deletePlan(onlyId);
+    const { plans, activePlanId } = useStore.getState();
+    expect(Object.keys(plans)).toHaveLength(1);
+    expect(activePlanId).not.toBe(onlyId);
+  });
+
+  test('deleting a non-active plan keeps the active plan active', () => {
+    const firstId = useStore.getState().activePlanId!;
+    getState().newPlan('Second Plan');
+    getState().switchPlan(firstId); // switch back to first
+    const secondId = Object.keys(useStore.getState().plans).find(id => id !== firstId)!;
+    getState().deletePlan(secondId);
+    expect(useStore.getState().activePlanId).toBe(firstId);
+    expect(useStore.getState().plans[secondId]).toBeUndefined();
+  });
+});
+
+describe('importJSON round-trip', () => {
+  test('exportJSON + importJSON produces equivalent plan data', () => {
+    getState().addWall({ x: 0, y: 0 }, { x: 200, y: 0 });
+    getState().addWall({ x: 0, y: 100 }, { x: 200, y: 100 });
+    const originalPlan = getActivePlan();
+
+    const json = getState().exportJSON();
+    const err = getState().importJSON(json);
+    expect(err).toBeNull();
+
+    const imported = getActivePlan();
+    // Same wall count and positions, different ID
+    expect(imported.walls).toHaveLength(originalPlan.walls.length);
+    expect(imported.walls[0].start).toEqual(originalPlan.walls[0].start);
+    expect(imported.walls[0].end).toEqual(originalPlan.walls[0].end);
+    expect(imported.id).not.toBe(originalPlan.id); // gets a fresh ID
+  });
+
+  test('importJSON returns error on invalid JSON', () => {
+    const err = getState().importJSON('not valid json {{');
+    expect(err).toBeTruthy();
+  });
+
+  test('importJSON returns error on missing required fields', () => {
+    const err = getState().importJSON(JSON.stringify({ schemaVersion: 1, plan: { name: 'X' } }));
+    expect(err).toBeTruthy();
+  });
+});

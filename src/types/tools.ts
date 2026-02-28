@@ -1,4 +1,4 @@
-import type { Point, Opening } from './plan';
+import type { Point } from './plan';
 
 export type ToolType =
   | 'select'
@@ -15,21 +15,6 @@ export type ToolType =
   | 'calibrate';
 
 export type LayerName = 'structure' | 'furniture' | 'annotations';
-
-export interface DrawingState {
-  tool: ToolType;
-  phase: 'idle' | 'drawing' | 'placing' | 'dragging';
-  // Wall drawing:
-  chainStart: Point | null;
-  // Opening placement:
-  pendingOpeningType: Opening['type'] | null;
-  pendingOpeningWallId: string | null;
-  // Rubber-band selection:
-  rubberBandStart: Point | null;
-  // Dragging existing elements:
-  dragStartWorld: Point | null;
-  dragStartPositions: Record<string, Point>; // id → original position
-}
 
 export interface SnapResult {
   point: Point;

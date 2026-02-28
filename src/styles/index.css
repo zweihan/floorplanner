@@ -2,6 +2,43 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Dark theme overrides ─────────────────────────────────────────────────── */
+/* Applied when <html class="dark"> is set (Tailwind darkMode: 'class') */
+
+.dark body {
+  background-color: #1a1a1a;
+  color: #e5e7eb;
+}
+
+/* Shell panels */
+.dark header,
+.dark .fp-toolbar,
+.dark .fp-statusbar,
+.dark .fp-panel {
+  background-color: #1f2937;
+  border-color: #374151;
+  color: #d1d5db;
+}
+
+/* Inputs and selects inside panels */
+.dark .fp-panel input,
+.dark .fp-panel select,
+.dark .fp-panel textarea {
+  background-color: #374151;
+  border-color: #4b5563;
+  color: #f3f4f6;
+}
+
+.dark .fp-panel input:focus,
+.dark .fp-panel select:focus {
+  border-color: #0d9488;
+  outline: none;
+}
+
+/* Scrollable areas */
+.dark .fp-panel::-webkit-scrollbar-track { background: #1f2937; }
+.dark .fp-panel::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 3px; }
+
 /* Custom canvas cursor styles */
 canvas { cursor: default; }
 canvas[data-tool="wall"] { cursor: crosshair; }

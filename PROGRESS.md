@@ -1,6 +1,6 @@
 # FloorPlanner — Implementation Progress
 
-## Status: Checkpoint 13 complete — awaiting review
+## Status: R1/R2/R3 refactors complete — awaiting review
 
 ## Completed
 
@@ -19,6 +19,11 @@
 - [x] **Checkpoint 11 — Pan Tool, Opening Properties & Passages** ✅
 - [x] **Checkpoint 12 — Reference Image Tracing** ✅
 - [x] **Checkpoint 13 — Annotations (Dimensions + Text)** ✅
+- [x] **Checkpoint 14 — Export, Import & Multiple Plans** ✅
+- [x] **Checkpoint 15 — Settings, Dark Theme & Polish** ✅
+- [x] **PROPOSAL.md R3** — Removed dead `drawingState` / `hoveredId` from store, RenderState, CanvasContainer ✅
+- [x] **PROPOSAL.md R2** — Added `renamePlan(id, name)` store action; fixed `PlanListModal` ✅
+- [x] **PROPOSAL.md R1** — Split `useMouseEvents.ts` (869→294 lines) into 10 per-tool modules ✅
 
 ---
 
@@ -253,27 +258,58 @@ What you should see running `npm run dev`:
 
 ---
 
-## Checkpoint 14 — Export, Import & Multiple Plans
+## Checkpoint 14 — Export, Import & Multiple Plans (DONE)
 
-| File | What it does |
+| File | What changed |
 |------|--------------|
-| `src/canvas/export.ts` | `exportPNG(plan, scale)` — off-screen canvas render at 1×/2×/4× |
-| `src/store/index.ts` | `exportJSON`, `importJSON` (validate schema, merge or replace) |
-| `src/components/ExportMenu.tsx` | Dropdown: Export PNG (1×/2×/4×), Export JSON, Import JSON |
-| `src/components/PlanListModal.tsx` | Plan list with New / Rename / Delete / Switch |
+| `src/canvas/export.ts` | `exportPNG(plan, settings, scale)` — tight-bounds off-screen canvas render at 1×/2×/4×, downloads file |
+| `src/store/index.ts` | `exportJSON()` serializes active plan with `{schemaVersion:1, plan}`; `importJSON(json)` validates + imports as new plan |
+| `src/components/ExportMenu.tsx` | Dropdown button in header: PNG 1×/2×/4×, Export JSON, Import JSON (file picker) |
+| `src/components/PlanListModal.tsx` | Modal: list of plans with click-to-switch, double-click-to-rename, delete, + New Plan input |
+| `src/App.tsx` | Header now has inline plan name editor (double-click), plan switcher button, ExportMenu; PlanListModal wired |
+| `src/store/crud.test.ts` | 8 new tests: newPlan (3), deletePlan (2), importJSON round-trip (3) |
 
-Tests: `newPlan`, `deletePlan`, `importJSON` round-trip.
+Build: `tsc --noEmit` clean, 132/132 tests.
+
+What you should see running `npm run dev`:
+
+- Header shows plan name; **double-click** plan name → inline input to rename; Enter/blur commits
+- Click **▾** next to plan name → PlanListModal opens; lists all plans; click to switch; double-click row to rename; ✕ to delete; + New Plan to create
+- Click **Export ▾** in header → dropdown with PNG 1×/2×/4×, Export JSON, Import JSON…
+- Export PNG → off-screen render (no grid, no selection handles, tight crop + 20 cm padding) downloads as `{name}_{scale}x.png`
+- Export JSON → downloads `{name}.json` with `schemaVersion:1` wrapper
+- Import JSON → file picker; loads plan into store; switches to it; shows toast on success/error
 
 ---
 
-## Checkpoint 15 — Settings, Dark Theme & Polish
+## Checkpoint 15 — Settings, Dark Theme & Polish (DONE)
 
-| File | What it does |
+| File | What changed |
 |------|--------------|
-| `src/components/SettingsModal.tsx` | Unit, default wall thickness, grid size, snap toggles, theme toggle |
-| `src/store/index.ts` | `updateSettings` action; settings persisted in `localStorage` |
-| `src/canvas/renderer.ts` + CSS | Dark theme: canvas background #1a1a1a, grid #2a2a2a; CSS variables via `data-theme` |
-| Header inline edit | Double-click plan name in header → inline `<input>`, commit on Enter/blur |
-| Fit-to-screen on first load | Call `fitToScreen` in `usePlanPersistence` when loading plan with no saved viewport |
+| `src/components/SettingsModal.tsx` | New modal: dark theme toggle, display unit, wall thickness, grid size, show-dimensions toggle, all 4 snap toggles |
+| `src/App.tsx` | Toggles `dark` class on `<html>` via `useEffect` when `settings.theme` changes; gear ⚙ button in header opens SettingsModal; `SettingsModal` imported and rendered |
+| `src/styles/index.css` | Added `.dark` CSS overrides for `.fp-toolbar`, `.fp-statusbar`, `.fp-panel` shells (bg, border, color, input colors) |
+| `src/hooks/usePlanPersistence.ts` | On first mount: if viewport is at factory default (pan=0, zoom=1), calls `fitToScreen` with estimated canvas size |
 
-E2E tests: wall drawing, selection, persistence (Playwright).
+Note: E2E Playwright tests skipped — Playwright not configured in this project. All 132 unit tests pass.
+
+Build: `tsc --noEmit` clean, 132/132 tests.
+
+What you should see running `npm run dev`:
+
+- Click **⚙** (gear) in header → SettingsModal opens with sections for Appearance, Units, Drawing Defaults, Snapping
+- Toggle **Dark theme** → entire UI switches: canvas background → dark, grid → darker, app shell → dark gray
+- Change **Display unit** (cm/m/ft) → measurement labels throughout update
+- Change **Wall thickness** / **Grid size** → persists and applies to new elements
+- Toggle **Snap to grid / endpoints / midpoints / angle** → affects snapping behavior immediately
+- On fresh load (no saved viewport): canvas auto-fits the plan bounds into the viewport
+
+---
+
+## Next steps (post-Checkpoint 15)
+
+The project is now feature-complete per the original spec. Potential polish:
+- PropertiesPanel + FurniturePanel internal dark-mode class updates (currently CSS selector `.fp-panel` handles most of it via parent)
+- E2E Playwright test suite (wall drawing, selection, persistence)
+- Keyboard shortcut for Settings (e.g. `,`)
+- Accessibility audit (ARIA labels, keyboard nav in modals)

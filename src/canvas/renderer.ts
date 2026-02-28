@@ -1,6 +1,6 @@
 import type { Plan, Viewport, Point, Opening, BackgroundImage } from '../types/plan';
 import type { UserSettings } from '../types/settings';
-import type { LayerName, DrawingState, SnapResult, ToolType } from '../types/tools';
+import type { LayerName, SnapResult, ToolType } from '../types/tools';
 import { worldToScreen } from '../geometry/transforms';
 import { drawBackground } from './layers/background';
 import { drawGrid } from './layers/grid';
@@ -22,10 +22,8 @@ export interface RenderState {
   viewport: Viewport;
   settings: UserSettings;
   selectedIds: string[];
-  hoveredId: string | null;
   ghostPoint: Point | null;
   wallChain: Point[];
-  drawingState: DrawingState | null;
   showGrid: boolean;
   layers: Record<LayerName, { visible: boolean; locked: boolean }>;
   pendingFurnitureTemplateId: string | null;

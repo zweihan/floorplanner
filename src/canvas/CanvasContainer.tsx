@@ -16,10 +16,8 @@ export function CanvasContainer() {
   const activePlanId = useStore(s => s.activePlanId);
   const plans = useStore(s => s.plans);
   const selectedIds = useStore(s => s.selectedIds);
-  const hoveredId = useStore(s => s.hoveredId);
   const ghostPoint = useStore(s => s.ghostPoint);
   const wallChain = useStore(s => s.wallChain);
-  const drawingState = useStore(s => s.drawingState);
   const showGrid = useStore(s => s.showGrid);
   const layers = useStore(s => s.layers);
   const settings = useStore(s => s.settings);
@@ -115,10 +113,8 @@ export function CanvasContainer() {
         viewport: plan.viewport,
         settings,
         selectedIds,
-        hoveredId,
         ghostPoint,
         wallChain,
-        drawingState,
         showGrid,
         layers,
         pendingFurnitureTemplateId,
@@ -132,7 +128,7 @@ export function CanvasContainer() {
         ppcm: PPCM,
       });
     },
-    [plan, settings, selectedIds, hoveredId, ghostPoint, wallChain, drawingState, showGrid, layers, pendingFurnitureTemplateId, snapResult, rubberBandRect, activeTool, openingGhost, backgroundImage, calibrationLine, editingTextLabelId]
+    [plan, settings, selectedIds, ghostPoint, wallChain, showGrid, layers, pendingFurnitureTemplateId, snapResult, rubberBandRect, activeTool, openingGhost, backgroundImage, calibrationLine, editingTextLabelId]
   );
 
   const canvasRef = useCanvas(renderFn);

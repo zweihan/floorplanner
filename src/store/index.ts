@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import type { Plan, Point, Wall, Room, Opening, FurnitureItem, DimensionLine, TextLabel, Viewport, BackgroundImage } from '../types/plan';
-import type { ToolType, LayerName, DrawingState, Toast } from '../types/tools';
+import type { ToolType, LayerName, Toast } from '../types/tools';
 import type { UserSettings } from '../types/settings';
 import { uuid } from '../utils/uuid';
 import { DEFAULT_SETTINGS } from '../data/defaultSettings';
@@ -64,9 +64,7 @@ interface AppState {
 
   // Editor state
   selectedIds: string[];
-  hoveredId: string | null;
   activeTool: ToolType;
-  drawingState: DrawingState | null;
   wallChain: Point[];
   ghostPoint: Point | null;
 
@@ -125,10 +123,8 @@ interface AppState {
   updateWallEndpoints(updates: Array<{ id: string; endpoint: 'start' | 'end'; position: Point }>): void;
 
   setSelectedIds(ids: string[]): void;
-  setHoveredId(id: string | null): void;
   setActiveTool(tool: ToolType): void;
   setPendingFurnitureTemplate(templateId: string | null): void;
-  setDrawingState(state: DrawingState | null): void;
   setGhostPoint(p: Point | null): void;
   pushToChain(p: Point): void;
   clearChain(): void;
@@ -142,6 +138,7 @@ interface AppState {
   newPlan(name: string): void;
   deletePlan(id: string): void;
   switchPlan(id: string): void;
+  renamePlan(id: string, name: string): void;
 
   updateSettings(changes: Partial<UserSettings>): void;
   updateDocument(changes: Partial<Pick<Plan, 'name' | 'unit' | 'gridSize' | 'width' | 'height'>>): void;
@@ -153,6 +150,11 @@ interface AppState {
   updateBackgroundImage(planId: string, patch: Partial<BackgroundImage>): void;
   setCalibrationLine(line: { start: Point; end: Point } | null): void;
   setEditingTextLabelId(id: string | null): void;
+
+  /** Serialize active plan to JSON string (with schema version). */
+  exportJSON(): string;
+  /** Import a plan from JSON string. Returns error message on failure, null on success. */
+  importJSON(json: string): string | null;
 
   toggleShowGrid(): void;
   toggleSnapToGrid(): void;
@@ -187,9 +189,7 @@ export const useStore = create<AppState>((set, get) => ({
 
   // Editor state
   selectedIds: [],
-  hoveredId: null,
   activeTool: 'select',
-  drawingState: null,
   wallChain: [],
   ghostPoint: null,
 
@@ -393,6 +393,21 @@ export const useStore = create<AppState>((set, get) => ({
       walls: plan.walls.map(w => idSet.has(w.id)
         ? { ...w, start: { x: w.start.x + dx, y: w.start.y + dy }, end: { x: w.end.x + dx, y: w.end.y + dy } }
         : w),
+      openings: plan.openings.map(o => {
+        if (!idSet.has(o.id)) return o;
+        const wall = plan.walls.find(w => w.id === o.wallId);
+        if (!wall) return o;
+        const wdx = wall.end.x - wall.start.x;
+        const wdy = wall.end.y - wall.start.y;
+        const wallLen2 = wdx * wdx + wdy * wdy;
+        if (wallLen2 < 1) return o;
+        const nx = wall.start.x + o.position * wdx + dx;
+        const ny = wall.start.y + o.position * wdy + dy;
+        const newT = Math.max(0, Math.min(1,
+          ((nx - wall.start.x) * wdx + (ny - wall.start.y) * wdy) / wallLen2
+        ));
+        return { ...o, position: newT };
+      }),
       rooms: plan.rooms.map(r => idSet.has(r.id)
         ? { ...r, points: r.points.map(p => ({ x: p.x + dx, y: p.y + dy })), labelPosition: { x: r.labelPosition.x + dx, y: r.labelPosition.y + dy } }
         : r),
@@ -429,10 +444,8 @@ export const useStore = create<AppState>((set, get) => ({
 
   // ─── Selection / UI ─────────────────────────────────────────────────────────
   setSelectedIds: (ids) => set({ selectedIds: ids }),
-  setHoveredId: (id) => set({ hoveredId: id }),
   setActiveTool: (tool) => set({ activeTool: tool }),
   setPendingFurnitureTemplate: (templateId) => set({ pendingFurnitureTemplateId: templateId }),
-  setDrawingState: (state) => set({ drawingState: state }),
   setGhostPoint: (p) => set({ ghostPoint: p }),
   pushToChain: (p) => set(s => ({ wallChain: [...s.wallChain, p] })),
   clearChain: () => set({ wallChain: [], ghostPoint: null }),
@@ -519,6 +532,15 @@ export const useStore = create<AppState>((set, get) => ({
 
   switchPlan: (id) => {
     set({ activePlanId: id, past: [], future: [], selectedIds: [] });
+  },
+
+  renamePlan: (id, name) => {
+    set(s => ({
+      plans: {
+        ...s.plans,
+        [id]: { ...s.plans[id], name, updatedAt: new Date().toISOString() },
+      },
+    }));
   },
 
   // ─── Settings ───────────────────────────────────────────────────────────────
@@ -631,6 +653,59 @@ export const useStore = create<AppState>((set, get) => ({
 
   setEditingTextLabelId: (id) => {
     set({ editingTextLabelId: id });
+  },
+
+  // ─── JSON Export / Import ─────────────────────────────────────────────────
+  exportJSON: () => {
+    const { activePlanId, plans } = get();
+    if (!activePlanId) return '{}';
+    const plan = plans[activePlanId];
+    return JSON.stringify({ schemaVersion: 1, plan }, null, 2);
+  },
+
+  importJSON: (json) => {
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(json);
+    } catch {
+      return 'Invalid JSON: could not parse file.';
+    }
+    if (typeof parsed !== 'object' || parsed === null) return 'Invalid file format.';
+    const obj = parsed as Record<string, unknown>;
+    const planData = (obj.schemaVersion === 1 ? obj.plan : parsed) as Partial<Plan>;
+    if (!planData || typeof planData !== 'object') return 'Invalid file: missing plan data.';
+    // Required field checks
+    if (typeof planData.name !== 'string') return 'Invalid plan: missing name.';
+    if (!Array.isArray(planData.walls)) return 'Invalid plan: missing walls array.';
+    if (!Array.isArray(planData.rooms)) return 'Invalid plan: missing rooms array.';
+    if (!Array.isArray(planData.openings)) return 'Invalid plan: missing openings array.';
+    if (!Array.isArray(planData.furniture)) return 'Invalid plan: missing furniture array.';
+    // Assign a new ID to avoid collisions and add missing optional arrays
+    const importedPlan: Plan = {
+      walls: [],
+      rooms: [],
+      openings: [],
+      furniture: [],
+      dimensions: [],
+      textLabels: [],
+      unit: 'cm',
+      gridSize: 10,
+      width: 1200,
+      height: 800,
+      viewport: { panX: 0, panY: 0, zoom: 1 },
+      ...planData,
+      id: uuid(),
+      createdAt: planData.createdAt ?? new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    } as Plan;
+    set(s => ({
+      plans: { ...s.plans, [importedPlan.id]: importedPlan },
+      activePlanId: importedPlan.id,
+      past: [],
+      future: [],
+      selectedIds: [],
+    }));
+    return null;
   },
 }));
 

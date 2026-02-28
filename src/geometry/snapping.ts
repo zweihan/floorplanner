@@ -83,7 +83,8 @@ export function applySnapping(
   viewport: Viewport,
   ppcm: number,
   chainStart: Point | null = null,
-  shiftHeld = false
+  shiftHeld = false,
+  gridSize?: number  // per-plan grid size; falls back to settings.defaultGridSize
 ): SnapResult {
   const threshold = 12 / (ppcm * viewport.zoom); // 12 screen px → world cm
 
@@ -108,10 +109,11 @@ export function applySnapping(
   }
 
   if (settings.snapToGrid) {
+    const g = gridSize ?? settings.defaultGridSize;
     return {
       point: {
-        x: snapToGrid(cursor.x, settings.defaultGridSize),
-        y: snapToGrid(cursor.y, settings.defaultGridSize),
+        x: snapToGrid(cursor.x, g),
+        y: snapToGrid(cursor.y, g),
       },
       type: 'grid',
     };

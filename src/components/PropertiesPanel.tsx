@@ -441,7 +441,7 @@ function FurnitureProperties({ furnitureId }: { furnitureId: string }) {
   if (!item) return null;
 
   const commit = (field: 'width' | 'depth', value: number) => {
-    const v = Math.max(5, value);
+    const v = Math.max(1, value);
     if (field === 'width') { setWidth(v); if (v !== item.width) updateFurniture(furnitureId, { width: v }); }
     else { setDepth(v); if (v !== item.depth) updateFurniture(furnitureId, { depth: v }); }
   };
@@ -475,7 +475,7 @@ function FurnitureProperties({ furnitureId }: { furnitureId: string }) {
       <Row label="Width">
         <div className="flex items-center gap-1">
           <input
-            type="number" min={5} step={1} value={width}
+            type="number" min={1} step={1} value={width}
             onChange={e => setWidth(Number(e.target.value))}
             onBlur={() => commit('width', width)}
             onKeyDown={e => e.key === 'Enter' && commit('width', width)}
@@ -488,7 +488,7 @@ function FurnitureProperties({ furnitureId }: { furnitureId: string }) {
       <Row label="Depth">
         <div className="flex items-center gap-1">
           <input
-            type="number" min={5} step={1} value={depth}
+            type="number" min={1} step={1} value={depth}
             onChange={e => setDepth(Number(e.target.value))}
             onBlur={() => commit('depth', depth)}
             onKeyDown={e => e.key === 'Enter' && commit('depth', depth)}
