@@ -55,7 +55,7 @@ export function computeExportBounds(plan: Plan): { minX: number; minY: number; m
  * @param settings  User settings (for theme, dimensions etc.)
  * @param scale  1 | 2 | 4 — pixel density multiplier
  */
-export function exportPNG(plan: Plan, settings: UserSettings, scale: 1 | 2 | 4 = 1): void {
+export function exportPNG(plan: Plan, settings: UserSettings, scale: 1 | 2 | 4 = 1, includeDimensions = true): void {
   const bounds = computeExportBounds(plan);
   const contentW = bounds.maxX - bounds.minX + EXPORT_PADDING_CM * 2;
   const contentH = bounds.maxY - bounds.minY + EXPORT_PADDING_CM * 2;
@@ -86,7 +86,7 @@ export function exportPNG(plan: Plan, settings: UserSettings, scale: 1 | 2 | 4 =
   drawOpenings(ctx, plan.walls, plan.openings, viewport, exportSettings, PPCM);
   drawDimensions(ctx, plan.dimensions, viewport, exportSettings, PPCM);
   drawTextLabels(ctx, plan.textLabels, viewport, PPCM, null);
-  if (exportSettings.showDimensions) {
+  if (includeDimensions) {
     drawWallLabels(ctx, plan.walls, viewport, exportSettings);
   }
 
