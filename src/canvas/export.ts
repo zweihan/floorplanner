@@ -13,7 +13,7 @@ import { drawWallLabels } from './layers/labels';
 const EXPORT_PADDING_CM = 20; // padding around content
 
 /** Compute tight bounding box of all plan elements (in cm). Falls back to plan dims. */
-function computeExportBounds(plan: Plan): { minX: number; minY: number; maxX: number; maxY: number } {
+export function computeExportBounds(plan: Plan): { minX: number; minY: number; maxX: number; maxY: number } {
   const xs: number[] = [];
   const ys: number[] = [];
 
