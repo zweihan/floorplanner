@@ -98,3 +98,71 @@ export function exportPNG(plan: Plan, settings: UserSettings, scale: 1 | 2 | 4 =
   a.download = `${safeFileName}_${scale}x.png`;
   a.click();
 }
+
+/**
+ * Render the plan to an off-screen canvas and trigger a PDF download via jsPDF.
+ * The PDF page is sized to match the plan's natural aspect ratio.
+ * @param plan              The plan to export
+ * @param settings          User settings (theme, displayUnit, etc.)
+ * @param includeDimensions Whether to draw wall length labels
+ */
+export async function exportPDF(
+  plan: Plan,
+  settings: UserSettings,
+  includeDimensions = true,
+): Promise<void> {
+  const { jsPDF } = await import('jspdf');
+
+  const bounds = computeExportBounds(plan);
+  const contentW = bounds.maxX - bounds.minX + EXPORT_PADDING_CM * 2;
+  const contentH = bounds.maxY - bounds.minY + EXPORT_PADDING_CM * 2;
+
+  // Render at 2× pixel density for crisp PDF embedding
+  const scale = 2;
+  const pxW = Math.round(contentW * PPCM * scale);
+  const pxH = Math.round(contentH * PPCM * scale);
+
+  const canvas = document.createElement('canvas');
+  canvas.width = pxW;
+  canvas.height = pxH;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+
+  const viewport = {
+    panX: (EXPORT_PADDING_CM - bounds.minX) * PPCM * scale,
+    panY: (EXPORT_PADDING_CM - bounds.minY) * PPCM * scale,
+    zoom: scale,
+  };
+
+  const exportSettings: UserSettings = { ...settings, theme: 'light' };
+
+  drawBackground(ctx, pxW, pxH, exportSettings);
+  drawRooms(ctx, plan.rooms, viewport, exportSettings, PPCM);
+  drawFurniture(ctx, plan.furniture, viewport, exportSettings, PPCM);
+  drawWalls(ctx, plan.walls, plan.openings, viewport, exportSettings, PPCM);
+  drawOpenings(ctx, plan.walls, plan.openings, viewport, exportSettings, PPCM);
+  drawDimensions(ctx, plan.dimensions, viewport, exportSettings, PPCM);
+  drawTextLabels(ctx, plan.textLabels, viewport, PPCM, null);
+  if (includeDimensions) {
+    drawWallLabels(ctx, plan.walls, viewport, exportSettings);
+  }
+
+  const dataUrl = canvas.toDataURL('image/png');
+
+  // PDF page size in mm — use plan's natural aspect ratio
+  const MM_PER_CM = 10;
+  const widthMm = contentW * MM_PER_CM;
+  const heightMm = contentH * MM_PER_CM;
+  const orientation = widthMm >= heightMm ? 'landscape' : 'portrait';
+
+  const doc = new jsPDF({
+    orientation,
+    unit: 'mm',
+    format: [widthMm, heightMm],
+  });
+
+  doc.addImage(dataUrl, 'PNG', 0, 0, widthMm, heightMm);
+
+  const safeFileName = plan.name.replace(/[^a-z0-9_\-]/gi, '_') || 'floorplan';
+  doc.save(`${safeFileName}.pdf`);
+}
