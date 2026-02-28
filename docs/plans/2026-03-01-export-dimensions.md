@@ -2,9 +2,9 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** Add an "Include wall labels" checkbox to the Export menu and a PDF export option, both including wall length labels.
+**Goal:** Add an "Include wall labels" checkbox to the Export menu and a PDF export option, both including wall length labels. Simplify the PNG export to a single button (no scale picker).
 
-**Architecture:** `computeExportBounds` becomes exported (testable); `exportPNG` gains an `includeDimensions: boolean` param replacing the `showDimensions` gate; a new `exportPDF` function reuses the same offscreen canvas pipeline and writes to a jsPDF document; `ExportMenu` gets a checkbox state and a PDF section.
+**Architecture:** `computeExportBounds` becomes exported (testable); `exportPNG` gains an `includeDimensions: boolean` param replacing the `showDimensions` gate (scale param kept but ExportMenu no longer exposes scale choice — hardcoded to 2×); a new `exportPDF` function reuses the same offscreen canvas pipeline and writes to a jsPDF document; `ExportMenu` gets a checkbox state, a single "Export PNG" button, and a PDF section.
 
 **Tech Stack:** jsPDF 2.x (already in `package.json`), Vitest + jsdom for tests.
 
@@ -284,10 +284,10 @@ export function ExportMenu() {
   const importJSON = useStore(s => s.importJSON);
   const addToast = useStore(s => s.addToast);
 
-  function handleExportPNG(scale: 1 | 2 | 4) {
+  function handleExportPNG() {
     if (!activePlanId) return;
     setOpen(false);
-    exportPNG(plans[activePlanId], settings, scale, includeDimensions);
+    exportPNG(plans[activePlanId], settings, 2, includeDimensions);
   }
 
   async function handleExportPDF() {
@@ -361,15 +361,12 @@ export function ExportMenu() {
 
             {/* PNG */}
             <div className="px-3 py-1 text-xs text-gray-400 uppercase tracking-wide">PNG</div>
-            {([1, 2, 4] as const).map(scale => (
-              <button
-                key={scale}
-                onClick={() => handleExportPNG(scale)}
-                className="w-full text-left px-4 py-1.5 text-sm hover:bg-gray-50"
-              >
-                Export PNG {scale}×
-              </button>
-            ))}
+            <button
+              onClick={handleExportPNG}
+              className="w-full text-left px-4 py-1.5 text-sm hover:bg-gray-50"
+            >
+              Export PNG
+            </button>
             <hr className="my-1 border-gray-100" />
 
             {/* PDF */}
@@ -435,13 +432,47 @@ git commit -m "feat: add wall labels checkbox and PDF export to ExportMenu"
 
 ---
 
-### Task 5: Manual smoke test
+### Task 5: Update `Ctrl+E` keyboard shortcut
+
+The keyboard shortcut in `src/canvas/interaction/useKeyboardShortcuts.ts` calls `exportPNG(plan, settings)` directly (scale defaults to 1). Update it to use scale 2 and `includeDimensions: true` to match the new default behavior.
+
+**Files:**
+- Modify: `src/canvas/interaction/useKeyboardShortcuts.ts`
+
+**Step 1: Find and update the call**
+
+Find the line (around line 98):
+```ts
+if (plan) exportPNG(plan, settings);
+```
+Change to:
+```ts
+if (plan) exportPNG(plan, settings, 2, true);
+```
+
+**Step 2: TypeScript check + run tests**
+
+```bash
+npx tsc --noEmit && npx vitest run
+```
+Expected: no errors, all tests PASS.
+
+**Step 3: Commit**
+
+```bash
+git add src/canvas/interaction/useKeyboardShortcuts.ts
+git commit -m "feat: update Ctrl+E shortcut to export at 2x with wall labels"
+```
+
+---
+
+### Task 6: Manual smoke test
 
 Open the app in the browser (`npm run dev`) and verify:
 
-1. Open the Export menu — a "Wall labels" checkbox appears at top, checked by default.
-2. **PNG with labels:** Checkbox checked → Export PNG 1× → open the file → wall length labels visible.
-3. **PNG without labels:** Uncheck → Export PNG 1× → open the file → no wall labels.
+1. Open the Export menu — a "Wall labels" checkbox appears at top, checked by default. PNG section has a single "Export PNG" button (no 1×/2×/4× picker).
+2. **PNG with labels:** Checkbox checked → Export PNG → open the file → wall length labels visible.
+3. **PNG without labels:** Uncheck → Export PNG → open the file → no wall labels.
 4. **PDF export:** Export PDF → file `<planname>.pdf` downloads → open in PDF viewer → plan renders with labels matching checkbox state.
 5. **Plan name with spaces:** Rename plan to "My Floor Plan" → export → filename is `My_Floor_Plan.pdf`.
 
