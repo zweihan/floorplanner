@@ -803,7 +803,7 @@ export function PropertiesPanel() {
   const singleTextLabel = singleId ? plan?.textLabels.find(t => t.id === singleId) ?? null : null;
 
   return (
-    <aside className="w-60 bg-white border-l border-gray-200 shrink-0 p-3 overflow-y-auto">
+    <aside className="flex-1 min-h-0 p-3 overflow-y-auto">
       <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Properties</p>
       {selectedIds.length === 0 ? (
         <DocumentProperties />

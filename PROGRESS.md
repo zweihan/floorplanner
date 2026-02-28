@@ -315,15 +315,15 @@ What you should see running `npm run dev`:
 | ✅ Toolbar icons | `src/App.tsx` | `TOOL_META` array with lucide-react icons; icon buttons with `aria-label` + `title` key hints |
 | ✅ PropertiesPanel fields | `src/components/PropertiesPanel.tsx` | Wall: editable start/end X/Y coordinates via `updateWallEndpoints`; Document: Width/Height fields; Furniture: Position X/Y inputs + Lock checkbox |
 | ✅ Keyboard shortcuts | `src/canvas/interaction/useKeyboardShortcuts.ts` | `Ctrl+E` → export PNG 1×; `Ctrl+Shift+F` → fit to screen |
-| ⬜ Cascade-delete toasts | `src/store/index.ts` | Toast when deleting a wall removes attached openings |
-| ⬜ Layer Panel UI | `src/components/LayerPanel.tsx` | Eye/lock toggles per layer |
-| ⬜ Furniture Panel accordion | `src/components/FurniturePanel.tsx` | Group templates by `category` in collapsible sections |
+| ✅ Cascade-delete toasts | `src/store/index.ts` | Toast when deleting a wall removes attached openings |
+| ✅ Layer Panel UI | `src/components/LayerPanel.tsx` | Eye/lock toggles per layer; wired into right sidebar below PropertiesPanel |
+| ✅ Furniture Panel accordion | `src/components/FurniturePanel.tsx`, `src/data/furnitureTemplates.ts` | Added `category` field; panel groups templates into Living/Bedroom/Kitchen/Bathroom with collapsible chevron headers |
 
-Build: `tsc --noEmit` clean, 132/132 tests.
+Build: `tsc --noEmit` clean, 132/132 tests. All Checkpoint 16 tasks complete.
 
 ---
 
-## Next steps (post-Checkpoint 15)
+## Next steps (post-Checkpoint 16)
 
 The project is now feature-complete per the original spec. Potential polish:
 - PropertiesPanel + FurniturePanel internal dark-mode class updates (currently CSS selector `.fp-panel` handles most of it via parent)

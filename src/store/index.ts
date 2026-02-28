@@ -374,6 +374,11 @@ export const useStore = create<AppState>((set, get) => ({
   // ─── Multi-element actions ──────────────────────────────────────────────────
   deleteElements: (ids) => {
     const idSet = new Set(ids);
+    const { plans, activePlanId } = get();
+    const plan = activePlanId ? plans[activePlanId] : null;
+    const cascadedCount = plan
+      ? plan.openings.filter(o => !idSet.has(o.id) && idSet.has(o.wallId)).length
+      : 0;
     withHistory(set, get, plan => ({
       ...plan,
       walls: plan.walls.filter(w => !idSet.has(w.id)),
@@ -384,6 +389,12 @@ export const useStore = create<AppState>((set, get) => ({
       textLabels: plan.textLabels.filter(t => !idSet.has(t.id)),
     }));
     set(s => ({ selectedIds: s.selectedIds.filter(id => !idSet.has(id)) }));
+    if (cascadedCount > 0) {
+      get().addToast(
+        `Also removed ${cascadedCount} opening${cascadedCount > 1 ? 's' : ''} attached to the deleted wall${ids.length > 1 ? 's' : ''}.`,
+        'info',
+      );
+    }
   },
 
   moveElements: (ids, dx, dy) => {

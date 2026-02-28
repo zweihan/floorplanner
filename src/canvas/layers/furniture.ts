@@ -258,6 +258,24 @@ function _drawShape(
       break;
     }
 
+    case 'cabinet': {
+      // Cabinet body
+      ctx.fillStyle = fillColor;
+      ctx.fillRect(-hw, -hd, hw * 2, hd * 2);
+      ctx.strokeRect(-hw, -hd, hw * 2, hd * 2);
+      // Door face inset (front edge, 15% of depth)
+      ctx.fillStyle = darken(fillColor, 0.06);
+      ctx.fillRect(-hw, hd * 0.85, hw * 2, hd * 0.15);
+      ctx.strokeRect(-hw, hd * 0.85, hw * 2, hd * 0.15);
+      // Centre divider line (two doors)
+      ctx.beginPath();
+      ctx.moveTo(0, -hd);
+      ctx.lineTo(0, hd * 0.85);
+      ctx.strokeStyle = strokeColor;
+      ctx.stroke();
+      break;
+    }
+
     default: {
       // Generic rectangle
       ctx.fillStyle = fillColor;

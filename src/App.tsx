@@ -13,6 +13,7 @@ import { FurniturePanel } from './components/FurniturePanel';
 import { ExportMenu } from './components/ExportMenu';
 import { PlanListModal } from './components/PlanListModal';
 import { SettingsModal } from './components/SettingsModal';
+import { LayerPanel } from './components/LayerPanel';
 
 function Header({ onOpenSettings }: { onOpenSettings(): void }) {
   const activePlanId = useStore(s => s.activePlanId);
@@ -164,7 +165,10 @@ export default function App() {
         <Toolbar />
         {activeTool === 'furniture' && <FurniturePanel />}
         <CanvasContainer />
-        <PropertiesPanel />
+        <div className="w-60 bg-white border-l border-gray-200 shrink-0 flex flex-col overflow-hidden">
+          <PropertiesPanel />
+          <LayerPanel />
+        </div>
       </div>
       <StatusBar />
       <ToastContainer />
