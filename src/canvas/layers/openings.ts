@@ -119,19 +119,30 @@ function _drawSymbol(
 
   switch (opening.type) {
     case 'door': {
-      // Door leaf: from hinge (openStartX, 0) to open position
-      const leafEndX = openStartX + openScreenWidth * Math.cos(openAngleRad);
-      const leafEndY = sideSign * openScreenWidth * Math.sin(openAngleRad);
-      ctx.beginPath();
-      ctx.moveTo(openStartX, 0);
-      ctx.lineTo(leafEndX, leafEndY);
-      ctx.stroke();
-      // Arc: traces swing path from closed (openEndX) to open position
-      // startAngle=0 (pointing along +x toward openEndX), endAngle=sideSign*rad
-      ctx.beginPath();
-      ctx.arc(openStartX, 0, openScreenWidth, 0, sideSign * openAngleRad, sideSign < 0);
-      ctx.stroke();
-      // Frame jamb lines
+      if (opening.mirrored) {
+        // Hinge at right end (openEndX), leaf swings toward openStartX
+        const leafEndX = openEndX - openScreenWidth * Math.cos(openAngleRad);
+        const leafEndY = sideSign * openScreenWidth * Math.sin(openAngleRad);
+        ctx.beginPath();
+        ctx.moveTo(openEndX, 0);
+        ctx.lineTo(leafEndX, leafEndY);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(openEndX, 0, openScreenWidth, Math.PI, Math.PI - sideSign * openAngleRad, sideSign > 0);
+        ctx.stroke();
+      } else {
+        // Hinge at left end (openStartX), leaf swings toward openEndX
+        const leafEndX = openStartX + openScreenWidth * Math.cos(openAngleRad);
+        const leafEndY = sideSign * openScreenWidth * Math.sin(openAngleRad);
+        ctx.beginPath();
+        ctx.moveTo(openStartX, 0);
+        ctx.lineTo(leafEndX, leafEndY);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(openStartX, 0, openScreenWidth, 0, sideSign * openAngleRad, sideSign < 0);
+        ctx.stroke();
+      }
+      // Frame jamb lines (same for both orientations)
       ctx.beginPath();
       ctx.moveTo(openStartX, -halfThick);
       ctx.lineTo(openStartX, halfThick);

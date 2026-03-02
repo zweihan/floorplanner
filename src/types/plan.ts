@@ -40,6 +40,7 @@ export interface Opening {
   swingDirection: 'left' | 'right' | 'inward' | 'outward';
   openAngle: number;       // degrees; default 90
   flipSide: boolean;
+  mirrored: boolean;       // hinge on right end instead of left end
 }
 
 export interface FurnitureItem {

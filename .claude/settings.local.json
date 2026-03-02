@@ -12,7 +12,8 @@
       "Bash(npx vitest:*)",
       "mcp__plugin_serena_serena__list_dir",
       "Bash(wc:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(git:*)"
     ]
   }
 }

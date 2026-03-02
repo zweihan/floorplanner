@@ -12,9 +12,11 @@ const ICONS: Record<string, string> = {
   toilet:  '🚽',
   bathtub: '🛁',
   sink:    '🚰',
-  stove:   '🍳',
-  fridge:  '🧊',
-  cabinet: '🗄',
+  stove:      '🍳',
+  fridge:     '🧊',
+  cabinet:    '🗄',
+  shower:     '🚿',
+  showerhead: '🚿',
 };
 
 export function FurniturePanel() {

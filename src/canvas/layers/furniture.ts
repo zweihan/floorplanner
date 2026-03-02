@@ -276,6 +276,63 @@ function _drawShape(
       break;
     }
 
+    case 'shower': {
+      // Enclosure body
+      ctx.fillStyle = fillColor;
+      ctx.fillRect(-hw, -hd, hw * 2, hd * 2);
+      ctx.strokeRect(-hw, -hd, hw * 2, hd * 2);
+      // Quarter-circle door arc in top-left corner (pivot door symbol)
+      const arcR = Math.min(hw, hd) * 0.55;
+      ctx.beginPath();
+      ctx.arc(-hw, -hd, arcR, 0, Math.PI / 2);
+      ctx.strokeStyle = strokeColor;
+      ctx.stroke();
+      // Door leaf line (from corner along the arc radius)
+      ctx.beginPath();
+      ctx.moveTo(-hw, -hd);
+      ctx.lineTo(-hw + arcR, -hd);
+      ctx.stroke();
+      // Drain circle in centre
+      const dr = Math.min(hw, hd) * 0.1;
+      ctx.beginPath();
+      ctx.arc(0, 0, dr, 0, Math.PI * 2);
+      ctx.fillStyle = darken(fillColor, 0.2);
+      ctx.fill();
+      ctx.strokeStyle = strokeColor;
+      ctx.stroke();
+      break;
+    }
+
+    case 'showerhead': {
+      const r = Math.min(hw, hd);
+      // Spray coverage circle (dashed)
+      ctx.beginPath();
+      ctx.arc(0, 0, r * 0.9, 0, Math.PI * 2);
+      ctx.fillStyle = fillColor;
+      ctx.fill();
+      ctx.setLineDash([3, 3]);
+      ctx.strokeStyle = strokeColor;
+      ctx.stroke();
+      ctx.setLineDash([]);
+      // Head disc
+      const hr = r * 0.35;
+      ctx.beginPath();
+      ctx.arc(0, 0, hr, 0, Math.PI * 2);
+      ctx.fillStyle = darken(fillColor, 0.18);
+      ctx.fill();
+      ctx.strokeStyle = strokeColor;
+      ctx.stroke();
+      // Radiating spray lines (8 lines from edge of head to coverage ring)
+      for (let i = 0; i < 8; i++) {
+        const a = (i / 8) * Math.PI * 2;
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(a) * hr, Math.sin(a) * hr);
+        ctx.lineTo(Math.cos(a) * r * 0.85, Math.sin(a) * r * 0.85);
+        ctx.stroke();
+      }
+      break;
+    }
+
     default: {
       // Generic rectangle
       ctx.fillStyle = fillColor;

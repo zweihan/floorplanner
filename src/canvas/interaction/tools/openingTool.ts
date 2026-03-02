@@ -18,6 +18,7 @@ export function createOpeningTool(ctx: ToolCtx): ToolHandler {
         swingDirection: 'inward',
         openAngle: 90,
         flipSide: false,
+        mirrored: false,
       });
       ctx.onOpeningGhostChange(null);
     },

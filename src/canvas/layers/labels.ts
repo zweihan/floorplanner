@@ -16,8 +16,10 @@ export function drawWallLabels(
 ): void {
   const isDark = settings.theme === 'dark';
 
+  const fontSize = Math.round(60 * viewport.zoom);
+
   ctx.save();
-  ctx.font = '11px system-ui, sans-serif';
+  ctx.font = `${fontSize}px system-ui, sans-serif`;
 
   for (const wall of walls) {
     const s = worldToScreen(wall.start.x, wall.start.y, viewport, PPCM);
@@ -52,7 +54,7 @@ export function drawWallLabels(
     ctx.textBaseline = 'bottom';
 
     const tw = ctx.measureText(text).width + 4;
-    const th = 11;
+    const th = fontSize;
 
     // Subtle background for readability
     ctx.fillStyle = isDark ? 'rgba(30,30,30,0.75)' : 'rgba(250,249,247,0.85)';

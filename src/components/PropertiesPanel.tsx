@@ -480,6 +480,15 @@ function OpeningProperties({ openingId }: { openingId: string }) {
               />
               <span className="text-xs text-gray-600">Flip side</span>
             </label>
+            <label className="flex items-center gap-1.5 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={opening.mirrored ?? false}
+                onChange={e => updateOpening(openingId, { mirrored: e.target.checked })}
+                className="w-3 h-3"
+              />
+              <span className="text-xs text-gray-600">Mirror</span>
+            </label>
           </div>
         </>
       )}
