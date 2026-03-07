@@ -35,6 +35,7 @@ export function drawFurnitureGhost(
     rotation: 0,
     color: template.defaultColor,
     locked: false,
+    userLayerId: null,
   };
   _drawItem(ctx, ghostItem, viewport, ppcm, false, 0.45);
 }
@@ -330,6 +331,214 @@ function _drawShape(
         ctx.lineTo(Math.cos(a) * r * 0.85, Math.sin(a) * r * 0.85);
         ctx.stroke();
       }
+      break;
+    }
+
+    case 'switch': {
+      const r = Math.min(hw, hd) * 0.8;
+      ctx.beginPath();
+      ctx.arc(0, 0, r, 0, Math.PI * 2);
+      ctx.fillStyle = fillColor;
+      ctx.fill();
+      ctx.strokeStyle = strokeColor;
+      ctx.stroke();
+      // Diagonal line (switch lever)
+      ctx.beginPath();
+      ctx.moveTo(-r * 0.5,  r * 0.5);
+      ctx.lineTo( r * 0.5, -r * 0.5);
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      ctx.lineWidth = 1;
+      // Dot at tip
+      ctx.beginPath();
+      ctx.arc(r * 0.5, -r * 0.5, r * 0.12, 0, Math.PI * 2);
+      ctx.fillStyle = strokeColor;
+      ctx.fill();
+      break;
+    }
+
+    case 'pipe-supply': {
+      ctx.fillStyle = fillColor;
+      ctx.fillRect(-hw, -hd, hw * 2, hd * 2);
+      ctx.strokeStyle = strokeColor;
+      ctx.strokeRect(-hw, -hd, hw * 2, hd * 2);
+      // Right-pointing arrow along centreline
+      const tipX = hw * 0.65;
+      const tailX = -hw * 0.5;
+      const arrowHalfH = hd * 0.55;
+      ctx.fillStyle = darken(fillColor, 0.25);
+      ctx.strokeStyle = strokeColor;
+      // Shaft
+      ctx.beginPath();
+      ctx.moveTo(tailX, 0);
+      ctx.lineTo(tipX - arrowHalfH, 0);
+      ctx.lineWidth = Math.max(1, hd * 0.3);
+      ctx.stroke();
+      ctx.lineWidth = 1;
+      // Arrowhead
+      ctx.beginPath();
+      ctx.moveTo(tipX, 0);
+      ctx.lineTo(tipX - arrowHalfH, -arrowHalfH);
+      ctx.lineTo(tipX - arrowHalfH,  arrowHalfH);
+      ctx.closePath();
+      ctx.fill();
+      break;
+    }
+
+    case 'pipe-drain': {
+      ctx.fillStyle = fillColor;
+      ctx.fillRect(-hw, -hd, hw * 2, hd * 2);
+      // Dashed outline
+      ctx.setLineDash([4, 3]);
+      ctx.strokeStyle = strokeColor;
+      ctx.strokeRect(-hw, -hd, hw * 2, hd * 2);
+      ctx.setLineDash([]);
+      // Left-pointing arrow
+      const tipX = -hw * 0.65;
+      const tailX = hw * 0.5;
+      const arrowHalfH = hd * 0.55;
+      ctx.fillStyle = darken(fillColor, 0.25);
+      ctx.beginPath();
+      ctx.moveTo(tipX, 0);
+      ctx.lineTo(tipX + arrowHalfH, -arrowHalfH);
+      ctx.lineTo(tipX + arrowHalfH,  arrowHalfH);
+      ctx.closePath();
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(tailX, 0);
+      ctx.lineTo(tipX + arrowHalfH, 0);
+      ctx.lineWidth = Math.max(1, hd * 0.3);
+      ctx.strokeStyle = strokeColor;
+      ctx.stroke();
+      ctx.lineWidth = 1;
+      break;
+    }
+
+    case 'valve': {
+      ctx.fillStyle = fillColor;
+      ctx.fillRect(-hw, -hd, hw * 2, hd * 2);
+      ctx.strokeStyle = strokeColor;
+      ctx.strokeRect(-hw, -hd, hw * 2, hd * 2);
+      // Bowtie — two filled triangles tip-to-tip
+      ctx.fillStyle = darken(fillColor, 0.15);
+      // Left triangle
+      ctx.beginPath();
+      ctx.moveTo(-hw * 0.9, -hd * 0.8);
+      ctx.lineTo(-hw * 0.9,  hd * 0.8);
+      ctx.lineTo(0, 0);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = strokeColor;
+      ctx.stroke();
+      // Right triangle
+      ctx.beginPath();
+      ctx.moveTo(hw * 0.9, -hd * 0.8);
+      ctx.lineTo(hw * 0.9,  hd * 0.8);
+      ctx.lineTo(0, 0);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      break;
+    }
+
+    case 'ac-indoor': {
+      ctx.fillStyle = fillColor;
+      ctx.fillRect(-hw, -hd, hw * 2, hd * 2);
+      ctx.strokeStyle = strokeColor;
+      ctx.strokeRect(-hw, -hd, hw * 2, hd * 2);
+      // 3 airflow slot lines at 25%, 50%, 75% of height
+      for (const t of [0.25, 0.5, 0.75]) {
+        const y = -hd + t * hd * 2;
+        ctx.beginPath();
+        ctx.moveTo(-hw + hw * 0.35, y);
+        ctx.lineTo(hw - 2, y);
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+      // Fan arc at left end
+      ctx.beginPath();
+      ctx.arc(-hw * 0.65, 0, hd * 0.6, -Math.PI / 2, Math.PI / 2);
+      ctx.stroke();
+      break;
+    }
+
+    case 'ac-duct': {
+      ctx.fillStyle = fillColor;
+      ctx.fillRect(-hw, -hd, hw * 2, hd * 2);
+      ctx.strokeStyle = strokeColor;
+      ctx.strokeRect(-hw, -hd, hw * 2, hd * 2);
+      // Diagonal hatching (45°), clipped to rect
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(-hw, -hd, hw * 2, hd * 2);
+      ctx.clip();
+      const spacing = Math.max(hd * 0.9, 4);
+      ctx.lineWidth = 0.75;
+      for (let x = -hw * 2; x < hw * 2; x += spacing) {
+        ctx.beginPath();
+        ctx.moveTo(x, -hd);
+        ctx.lineTo(x + hd * 2, hd);
+        ctx.stroke();
+      }
+      ctx.restore();
+      break;
+    }
+
+    case 'ac-drain': {
+      ctx.fillStyle = fillColor;
+      ctx.fillRect(-hw, -hd, hw * 2, hd * 2);
+      ctx.setLineDash([3, 3]);
+      ctx.strokeStyle = strokeColor;
+      ctx.strokeRect(-hw, -hd, hw * 2, hd * 2);
+      ctx.setLineDash([]);
+      // 5 dots along centreline
+      const dotR = Math.min(hd * 0.25, 3);
+      ctx.fillStyle = strokeColor;
+      for (let i = 0; i < 5; i++) {
+        const x = -hw * 0.7 + (i / 4) * hw * 1.4;
+        ctx.beginPath();
+        ctx.arc(x, 0, dotR, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      break;
+    }
+
+    case 'lamp': {
+      // Background rect
+      ctx.fillStyle = fillColor;
+      ctx.fillRect(-hw, -hd, hw * 2, hd * 2);
+      ctx.strokeRect(-hw, -hd, hw * 2, hd * 2);
+      const r = Math.min(hw, hd);
+      // Centre disc
+      ctx.beginPath();
+      ctx.arc(0, 0, r * 0.35, 0, Math.PI * 2);
+      ctx.fillStyle = darken(fillColor, 0.1);
+      ctx.fill();
+      ctx.strokeStyle = strokeColor;
+      ctx.stroke();
+      // 8 radiating lines
+      for (let i = 0; i < 8; i++) {
+        const a = (i / 8) * Math.PI * 2;
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(a) * r * 0.4, Math.sin(a) * r * 0.4);
+        ctx.lineTo(Math.cos(a) * r * 0.85, Math.sin(a) * r * 0.85);
+        ctx.strokeStyle = strokeColor;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+      break;
+    }
+
+    case 'outlet': {
+      ctx.fillStyle = fillColor;
+      ctx.fillRect(-hw, -hd, hw * 2, hd * 2);
+      ctx.strokeRect(-hw, -hd, hw * 2, hd * 2);
+      // Two socket slots
+      const sw = hw * 0.18;
+      const sh = hd * 0.4;
+      ctx.fillStyle = strokeColor;
+      ctx.fillRect(-hw * 0.4 - sw / 2, -sh, sw, sh * 2);
+      ctx.fillRect( hw * 0.4 - sw / 2, -sh, sw, sh * 2);
       break;
     }
 

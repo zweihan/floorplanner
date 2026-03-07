@@ -21,6 +21,18 @@ export const FURNITURE_TEMPLATES: FurnitureTemplate[] = [
   { id: 'shower',    label: 'Shower',    category: 'Bathroom', defaultWidth:  90, defaultDepth:  90, defaultColor: '#d8edf8' },
   { id: 'showerhead', label: 'Showerhead', category: 'Bathroom', defaultWidth: 30, defaultDepth:  30, defaultColor: '#c0d4e8' },
   { id: 'cabinet', label: 'Cabinet', category: 'Storage',  defaultWidth:  90, defaultDepth:  60, defaultColor: '#c8bfae' },
+  // Electrical
+  { id: 'lamp',    label: 'Lamp',    category: 'Electrical', defaultWidth: 30,  defaultDepth:  30, defaultColor: '#fff9c4' },
+  { id: 'outlet',  label: 'Outlet',  category: 'Electrical', defaultWidth: 10,  defaultDepth:  10, defaultColor: '#e0e0e0' },
+  { id: 'switch',  label: 'Switch',  category: 'Electrical', defaultWidth: 10,  defaultDepth:  10, defaultColor: '#e0e0e0' },
+  // Plumbing
+  { id: 'pipe-supply', label: 'Supply Pipe', category: 'Plumbing', defaultWidth: 100, defaultDepth:  6, defaultColor: '#b3d9f5' },
+  { id: 'pipe-drain',  label: 'Drain Pipe',  category: 'Plumbing', defaultWidth: 100, defaultDepth:  8, defaultColor: '#c8bfa8' },
+  { id: 'valve',       label: 'Valve',       category: 'Plumbing', defaultWidth:  15, defaultDepth: 15, defaultColor: '#f5c6c6' },
+  // HVAC
+  { id: 'ac-indoor', label: 'AC Indoor Unit',   category: 'HVAC', defaultWidth:  80, defaultDepth: 20, defaultColor: '#d0eaf5' },
+  { id: 'ac-duct',   label: 'Coolant Duct',     category: 'HVAC', defaultWidth: 100, defaultDepth:  8, defaultColor: '#d5e8d4' },
+  { id: 'ac-drain',  label: 'Condensate Drain', category: 'HVAC', defaultWidth: 100, defaultDepth:  6, defaultColor: '#dae8fc' },
 ];
 
 export function getTemplate(id: string): FurnitureTemplate | undefined {
