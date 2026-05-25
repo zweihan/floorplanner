@@ -4,6 +4,7 @@ import { useCanvas } from './useCanvas';
 import { render } from './renderer';
 import { applyZoom, PPCM, worldToScreen } from '../geometry/transforms';
 import { useMouseEvents } from './interaction/useMouseEvents';
+import { useTouchEvents } from './interaction/useTouchEvents';
 import { ScaleBar } from '../components/HUD/ScaleBar';
 import { CoordinateDisplay } from '../components/HUD/CoordinateDisplay';
 import { ZoomControls } from '../components/HUD/ZoomControls';
@@ -135,6 +136,7 @@ export function CanvasContainer() {
 
   // ─── Wire all mouse interaction ───────────────────────────────────────────
   useMouseEvents(canvasRef, onSnapChange, onRubberBandChange, onOpeningGhostChange);
+  useTouchEvents(canvasRef);
 
   // ─── Scroll wheel: zoom centred on cursor ─────────────────────────────────
   const planRef = useRef(plan);
@@ -155,7 +157,7 @@ export function CanvasContainer() {
 
   return (
     <div className="relative flex-1 overflow-hidden">
-      <canvas ref={canvasRef} data-tool={activeTool} />
+      <canvas ref={canvasRef} data-tool={activeTool} style={{ touchAction: 'none' }} />
 
       <div className="absolute inset-0 pointer-events-none">
         {/* HUD elements */}
