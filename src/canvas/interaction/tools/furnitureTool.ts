@@ -17,6 +17,7 @@ export function createFurnitureTool(ctx: ToolCtx): ToolHandler {
         rotation: 0,
         color: template.defaultColor,
         locked: false,
+        userLayerId: null,
       });
     },
 

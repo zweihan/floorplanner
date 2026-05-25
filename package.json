@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
+    "build:zweihan": "npm run build && rm -rf ../zweihan/floorplanner && mkdir -p ../zweihan/floorplanner && cp -r dist/* ../zweihan/floorplanner/",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest"

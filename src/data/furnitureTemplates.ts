@@ -22,9 +22,11 @@ export const FURNITURE_TEMPLATES: FurnitureTemplate[] = [
   { id: 'showerhead', label: 'Showerhead', category: 'Bathroom', defaultWidth: 30, defaultDepth:  30, defaultColor: '#c0d4e8' },
   { id: 'cabinet', label: 'Cabinet', category: 'Storage',  defaultWidth:  90, defaultDepth:  60, defaultColor: '#c8bfae' },
   // Electrical
-  { id: 'lamp',    label: 'Lamp',    category: 'Electrical', defaultWidth: 30,  defaultDepth:  30, defaultColor: '#fff9c4' },
-  { id: 'outlet',  label: 'Outlet',  category: 'Electrical', defaultWidth: 10,  defaultDepth:  10, defaultColor: '#e0e0e0' },
-  { id: 'switch',  label: 'Switch',  category: 'Electrical', defaultWidth: 10,  defaultDepth:  10, defaultColor: '#e0e0e0' },
+  { id: 'lamp',         label: 'Lamp',         category: 'Electrical', defaultWidth:  30, defaultDepth:  30, defaultColor: '#fff9c4' },
+  { id: 'ceiling-fan',  label: 'Ceiling Fan',  category: 'Electrical', defaultWidth: 120, defaultDepth: 120, defaultColor: '#e8e8e8' },
+  { id: 'led-strip',    label: 'LED Strip',    category: 'Electrical', defaultWidth: 100, defaultDepth:   4, defaultColor: '#fffde0' },
+  { id: 'outlet',       label: 'Outlet',       category: 'Electrical', defaultWidth:  10, defaultDepth:  10, defaultColor: '#e0e0e0' },
+  { id: 'switch',       label: 'Switch',       category: 'Electrical', defaultWidth:  10, defaultDepth:  10, defaultColor: '#e0e0e0' },
   // Plumbing
   { id: 'pipe-supply', label: 'Supply Pipe', category: 'Plumbing', defaultWidth: 100, defaultDepth:  6, defaultColor: '#b3d9f5' },
   { id: 'pipe-drain',  label: 'Drain Pipe',  category: 'Plumbing', defaultWidth: 100, defaultDepth:  8, defaultColor: '#c8bfa8' },

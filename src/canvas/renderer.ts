@@ -16,6 +16,7 @@ import { getTemplate } from '../data/furnitureTemplates';
 import { drawBackgroundImage, drawCalibrationLine } from './layers/backgroundImage';
 import { drawDimensions, drawDimensionGhost } from './layers/dimensions';
 import { drawTextLabels } from './layers/textLabels';
+import { isUserLayerVisible } from '../utils/userLayers';
 
 export interface RenderState {
   plan: Plan;
@@ -49,6 +50,10 @@ export function render(
 ): void {
   const { plan, viewport, settings, showGrid, layers, wallChain, ghostPoint, snapResult, selectedIds, activeTool } = state;
 
+  // Pre-filter furniture and openings by user layer visibility
+  const visibleFurniture = plan.furniture.filter(f => isUserLayerVisible(f.userLayerId, plan.userLayers));
+  const visibleOpenings  = plan.openings.filter(o  => isUserLayerVisible(o.userLayerId,  plan.userLayers));
+
   // 1. Background
   drawBackground(ctx, width, height, settings);
 
@@ -69,17 +74,17 @@ export function render(
 
   // 4. Furniture
   if (layers.furniture.visible) {
-    drawFurniture(ctx, plan.furniture, viewport, settings, state.ppcm);
+    drawFurniture(ctx, visibleFurniture, viewport, settings, state.ppcm);
   }
 
   // 5–6. Walls (with opening gaps)
   if (layers.structure.visible) {
-    drawWalls(ctx, plan.walls, plan.openings, viewport, settings, state.ppcm);
+    drawWalls(ctx, plan.walls, visibleOpenings, viewport, settings, state.ppcm);
   }
 
   // 7. Opening symbols
   if (layers.structure.visible) {
-    drawOpenings(ctx, plan.walls, plan.openings, viewport, settings, state.ppcm);
+    drawOpenings(ctx, plan.walls, visibleOpenings, viewport, settings, state.ppcm);
   }
 
   // 8. Dimension lines

@@ -53,6 +53,7 @@ function makePlan(overrides: Partial<Plan> = {}): Plan {
     dimensions: [],
     textLabels: [],
     viewport: { panX: 0, panY: 0, zoom: 1 },
+    userLayers: [{ id: 'default', name: 'Default', visible: true, color: '#6b7280' }],
     ...overrides,
   };
 }
@@ -158,7 +159,7 @@ describe('hitTestFurniture (unrotated)', () => {
     id: 'f1', templateId: 'table', label: 'Table',
     position: { x: 50, y: 50 },
     width: 40, depth: 30, rotation: 0,
-    color: '#a0a0a0', locked: false,
+    color: '#a0a0a0', locked: false, userLayerId: null,
   };
 
   test('point at (60,55) inside → true (|10|<=20 && |5|<=15)', () => {
@@ -178,7 +179,7 @@ describe('hitTestFurniture (rotated 45°)', () => {
     id: 'f2', templateId: 'table', label: 'Table',
     position: { x: 50, y: 50 },
     width: 40, depth: 30, rotation: 45,
-    color: '#a0a0a0', locked: false,
+    color: '#a0a0a0', locked: false, userLayerId: null,
   };
 
   test('point near center still inside → true', () => {

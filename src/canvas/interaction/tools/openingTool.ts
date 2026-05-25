@@ -19,6 +19,7 @@ export function createOpeningTool(ctx: ToolCtx): ToolHandler {
         openAngle: 90,
         flipSide: false,
         mirrored: false,
+        userLayerId: null,
       });
       ctx.onOpeningGhostChange(null);
     },

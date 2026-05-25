@@ -79,6 +79,7 @@ describe('opening cascade delete', () => {
       openAngle: 90,
       flipSide: false,
       mirrored: false,
+      userLayerId: null,
     });
     expect(getActivePlan().openings).toHaveLength(1);
     getState().deleteElements([wallId]);

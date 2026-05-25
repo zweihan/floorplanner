@@ -11,6 +11,7 @@ const emptyPlan: Plan = {
   walls: [], rooms: [], furniture: [], openings: [],
   dimensions: [], textLabels: [],
   viewport: { panX: 0, panY: 0, zoom: 1 },
+  userLayers: [{ id: 'default', name: 'Default', visible: true, color: '#6b7280' }],
 };
 
 describe('computeExportBounds', () => {
@@ -40,7 +41,7 @@ describe('computeExportBounds', () => {
       furniture: [{
         id: 'f1', templateId: 'sofa', label: 'Sofa',
         position: { x: 100, y: 100 }, width: 60, depth: 40,
-        rotation: 0, color: '#a0a0a0', locked: false,
+        rotation: 0, color: '#a0a0a0', locked: false, userLayerId: null,
       }],
     };
     const b = computeExportBounds(plan);

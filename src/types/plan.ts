@@ -1,5 +1,12 @@
 // All geometry values are in centimeters unless noted otherwise.
 
+export interface UserLayer {
+  id: string;
+  name: string;
+  visible: boolean;
+  color: string;   // hex; shown as dot in LayerPanel only (elements are not tinted)
+}
+
 export interface Point {
   x: number;
   y: number;
@@ -41,6 +48,7 @@ export interface Opening {
   openAngle: number;       // degrees; default 90
   flipSide: boolean;
   mirrored: boolean;       // hinge on right end instead of left end
+  userLayerId: string | null; // null → Default layer
 }
 
 export interface FurnitureItem {
@@ -53,6 +61,7 @@ export interface FurnitureItem {
   rotation: number;        // degrees clockwise
   color: string;           // default "#a0a0a0"
   locked: boolean;
+  userLayerId: string | null; // null → Default layer
 }
 
 export interface DimensionLine {
@@ -109,4 +118,5 @@ export interface Plan {
   dimensions: DimensionLine[];
   textLabels: TextLabel[];
   viewport: Viewport;
+  userLayers: UserLayer[];
 }

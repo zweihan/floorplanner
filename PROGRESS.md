@@ -330,3 +330,239 @@ The project is now feature-complete per the original spec. Potential polish:
 - E2E Playwright test suite (wall drawing, selection, persistence)
 - Keyboard shortcut for Settings (e.g. `,`)
 - Accessibility audit (ARIA labels, keyboard nav in modals)
+
+---
+
+## Checkpoint 17 — User-Defined Layers (DONE)
+
+### Feature summary
+Users can create arbitrarily named layers to organise furniture, fittings (openings), and other elements. Each layer can be toggled visible/hidden. Export (PNG + PDF) respects layer visibility — hidden layers are excluded from the output.
+
+### Current state (baseline for this checkpoint)
+| What | Where | Note |
+|------|-------|------|
+| System layers (Structure / Furniture / Annotations) | `AppState.layers: Record<LayerName, {visible,locked}>` | Global editor state, NOT in Plan |
+| No per-element layer assignment | `FurnitureItem`, `Opening` | No `userLayerId` field |
+| `LayerPanel` | 3 hardcoded rows | Eye + lock toggles only |
+| Export | `src/canvas/export.ts` | Passes full `plan.furniture` and `plan.openings` |
+
+### Design decisions
+1. **User layers are per-plan** — stored in `Plan.userLayers[]` so they serialize into JSON export, undo history, and plan-switch.
+2. **Default layer** (id `'default'`) always exists and cannot be deleted. Items with `userLayerId: null` are treated as if on the Default layer.
+3. **System layers stay unchanged** — the Structure / Furniture / Annotations toggles continue to work independently. Hiding the "Furniture" system layer still hides all furniture regardless of user-layer assignment.
+4. **User layer colours are UI-only** — shown as a colour dot in LayerPanel; elements are not tinted in the canvas.
+5. **Fittings = openings** (doors, windows, passages, etc.) — `Opening.userLayerId` added so openings can be placed on a user layer. Hidden opening user layers close wall gaps too (the opening is logically absent from that view).
+6. **No lock on user layers** — only system layers have lock. User layers only toggle visibility.
+7. **Import compatibility** — plans loaded without `userLayers` get `userLayers: []` (empty = only the Default layer exists implicitly).
+
+### Files to modify
+
+| File | What changes |
+|------|-------------|
+| `src/types/plan.ts` | Add `UserLayer` interface; add `userLayerId?: string \| null` to `FurnitureItem` and `Opening`; add `userLayers: UserLayer[]` to `Plan` |
+| `src/store/index.ts` | Add `addUserLayer`, `deleteUserLayer`, `updateUserLayer`, `assignUserLayer` actions to `AppState`; add implementations; update `makeDefaultPlan` to include default layer; update `importJSON` for migration |
+| `src/canvas/renderer.ts` | Filter furniture and openings by user-layer visibility before passing to draw functions |
+| `src/canvas/export.ts` | Same filtering in `computeExportBounds`, `exportPNG`, `exportPDF` |
+| `src/components/LayerPanel.tsx` | Add "User Layers" section below system layers: add/rename/delete/toggle rows |
+| `src/components/PropertiesPanel.tsx` | Add "Layer" `<select>` dropdown to `FurnitureProperties` and `OpeningProperties` |
+
+---
+
+### Step-by-step implementation plan
+
+#### Step 1 — Types (`src/types/plan.ts`)
+
+Add:
+```ts
+export interface UserLayer {
+  id: string;
+  name: string;
+  visible: boolean;
+  color: string;  // hex; shown as dot in LayerPanel UI only
+}
+```
+
+Extend `FurnitureItem`:
+```ts
+userLayerId: string | null;  // null → Default layer
+```
+
+Extend `Opening`:
+```ts
+userLayerId: string | null;  // null → Default layer
+```
+
+Extend `Plan`:
+```ts
+userLayers: UserLayer[];
+```
+
+---
+
+#### Step 2 — Store (`src/store/index.ts`)
+
+**`makeDefaultPlan` changes:**
+```ts
+userLayers: [{ id: 'default', name: 'Default', visible: true, color: '#6b7280' }],
+```
+All existing `furniture` and `openings` default to `userLayerId: null`.
+
+**New `AppState` interface actions:**
+```ts
+addUserLayer(name?: string): void;
+// Adds a new layer to plan.userLayers with a unique ID.
+// Auto-names "Layer N" where N = current count + 1.
+
+deleteUserLayer(id: string): void;
+// Cannot delete id='default'. Removes layer from plan.userLayers.
+// All furniture/openings on that layer get userLayerId: null (moved to Default).
+// Shows toast: "Layer deleted — N item(s) moved to Default".
+
+updateUserLayer(id: string, changes: Partial<Pick<UserLayer, 'name' | 'visible' | 'color'>>): void;
+// Merges changes into the matching entry in plan.userLayers.
+
+assignUserLayer(ids: string[], layerId: string | null): void;
+// Sets userLayerId on any furniture/opening whose id is in `ids`.
+// Accepts null to move items back to Default.
+```
+
+**All four actions go through `withHistory`** (layer creation/deletion/assignment are undoable).
+
+**`importJSON` migration:** After parsing, if `plan.userLayers` is missing or not an array, set it to `[]`. Each `FurnitureItem` and `Opening` without `userLayerId` gets `userLayerId: null` applied by default (TypeScript defaults handle this if the type allows undefined).
+
+---
+
+#### Step 3 — Renderer filtering (`src/canvas/renderer.ts`)
+
+Helper (local to the function or file):
+```ts
+function isUserLayerVisible(layerId: string | null | undefined, userLayers: UserLayer[]): boolean {
+  if (!layerId) return true;  // null/undefined → Default layer → always visible
+  const layer = userLayers.find(l => l.id === layerId);
+  return layer ? layer.visible : true;  // unknown id → show by default
+}
+```
+
+In `render()`, derive filtered lists before the draw calls:
+```ts
+const visibleFurniture = plan.furniture.filter(f =>
+  isUserLayerVisible(f.userLayerId, plan.userLayers)
+);
+const visibleOpenings = plan.openings.filter(o =>
+  isUserLayerVisible(o.userLayerId, plan.userLayers)
+);
+```
+
+Replace all uses of `plan.furniture` → `visibleFurniture` and `plan.openings` → `visibleOpenings` in the render calls (steps 4, 5, 6, 7). Note: `drawWalls` receives openings for gap rendering — use `visibleOpenings` there too so wall gaps close when the opening's layer is hidden.
+
+The system-layer check (`layers.furniture.visible`) is unchanged and stays as an outer guard.
+
+---
+
+#### Step 4 — Export filtering (`src/canvas/export.ts`)
+
+Add same `isUserLayerVisible` helper (or import it once it's extracted to a shared utility).
+
+In `computeExportBounds`, filter furniture before accumulating bounds:
+```ts
+const visibleFurniture = plan.furniture.filter(f => isUserLayerVisible(f.userLayerId, plan.userLayers));
+// use visibleFurniture in the .forEach loop
+```
+
+In `exportPNG` and `exportPDF`, build filtered slices of the plan before rendering:
+```ts
+const visibleFurniture = plan.furniture.filter(f => isUserLayerVisible(f.userLayerId, plan.userLayers));
+const visibleOpenings  = plan.openings.filter(o  => isUserLayerVisible(o.userLayerId,  plan.userLayers));
+// Pass these to drawFurniture, drawWalls, drawOpenings instead of plan.furniture/plan.openings
+```
+
+---
+
+#### Step 5 — LayerPanel UI (`src/components/LayerPanel.tsx`)
+
+New layout (within the existing `fp-panel` div):
+
+```
+┌─────────────────────────────────────────┐
+│ LAYERS                                  │
+│ ─── System ─────────────────────────── │
+│ 👁 🔓  Structure                        │
+│ 👁 🔓  Furniture                        │
+│ 👁 🔓  Annotations                      │
+│ ─── User Layers ─────────────── [+]  ─ │
+│ ● 👁 [×]  Default             (no ×)   │
+│ ● 👁 [×]  Furniture Plan               │
+│ ● 👁 [×]  Lighting Plan                │
+└─────────────────────────────────────────┘
+```
+
+Implementation details:
+- **"+" button** calls `addUserLayer()`.
+- Each user-layer row:
+  - **Colour dot**: `<input type="color">` styled as a small circle swatch; `onChange` calls `updateUserLayer(id, { color })`.
+  - **Name**: rendered as plain text by default. Double-click switches to an `<input>` (controlled local state); blur/Enter commits via `updateUserLayer(id, { name })`. Clicking away without changing cancels.
+  - **Eye icon**: calls `updateUserLayer(id, { visible: !layer.visible })`.
+  - **× button**: calls `deleteUserLayer(id)`. Hidden/disabled when `id === 'default'`.
+- User layers read from `plan.userLayers` (via `useStore(s => s.plans[s.activePlanId!]?.userLayers ?? [])`).
+- Store actions `addUserLayer`, `deleteUserLayer`, `updateUserLayer` consumed via `useStore`.
+
+---
+
+#### Step 6 — PropertiesPanel layer assignment (`src/components/PropertiesPanel.tsx`)
+
+**`FurnitureProperties`** — add below the existing "Locked" row:
+```tsx
+const userLayers = useStore(s => s.plans[s.activePlanId!]?.userLayers ?? []);
+const assignUserLayer = useStore(s => s.assignUserLayer);
+// ...
+<Row label="Layer">
+  <select
+    value={item.userLayerId ?? 'default'}
+    onChange={e => assignUserLayer([furnitureId], e.target.value === 'default' ? null : e.target.value)}
+    className="w-full border border-gray-300 rounded px-2 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-400"
+  >
+    <option value="default">Default</option>
+    {userLayers.filter(l => l.id !== 'default').map(l => (
+      <option key={l.id} value={l.id}>{l.name}</option>
+    ))}
+  </select>
+</Row>
+```
+
+**`OpeningProperties`** — identical pattern, using `openingId`.
+
+If `plan.userLayers` is empty or only contains the Default layer, the dropdown shows just "Default" and is effectively a no-op (no visual clutter for simple plans).
+
+---
+
+### Acceptance criteria
+
+- [x] New plan has a "Default" user layer in `plan.userLayers`.
+- [x] LayerPanel shows system layers (unchanged behaviour) + User Layers section with Default row.
+- [x] "+" button adds "Layer N" row; it appears immediately in the panel.
+- [x] Clicking the eye on a user layer hides all furniture/openings assigned to it on the canvas.
+- [x] Wall gaps close when the opening's user layer is hidden.
+- [x] Exporting PNG/PDF excludes furniture and openings on hidden user layers.
+- [x] Deleting a user layer reassigns its items to Default; toast is shown; items reappear on canvas.
+- [x] Layer name is editable (double-click inline); committed with Enter or blur.
+- [x] Layer colour dot opens colour picker; updating colour persists.
+- [x] FurnitureProperties and OpeningProperties show a "Layer" dropdown with all user layers.
+- [x] Changing layer assignment in Properties Panel is undoable (Ctrl+Z).
+- [x] JSON export includes `userLayers`; import restores them correctly.
+- [x] Plans without `userLayers` (legacy) import without error.
+- [x] `tsc --noEmit` passes; 136/136 tests pass.
+
+### Files changed
+
+| File | What changed |
+|------|-------------|
+| `src/types/plan.ts` | Added `UserLayer` interface; `userLayerId: string \| null` on `FurnitureItem` and `Opening`; `userLayers: UserLayer[]` on `Plan` |
+| `src/store/index.ts` | `DEFAULT_USER_LAYER` constant; `makeDefaultPlan` seeds Default layer; `addUserLayer`, `deleteUserLayer`, `updateUserLayer`, `assignUserLayer` actions (all undoable); `importJSON` migration |
+| `src/utils/userLayers.ts` | New shared helper `isUserLayerVisible` |
+| `src/canvas/renderer.ts` | Filters `visibleFurniture` / `visibleOpenings` before draw calls |
+| `src/canvas/export.ts` | Same filtering in `computeExportBounds`, `exportPNG`, `exportPDF` |
+| `src/components/LayerPanel.tsx` | User Layers section with colour dot, inline-editable name, eye toggle, delete (×), "+" add button |
+| `src/components/PropertiesPanel.tsx` | "Layer" `<select>` dropdown in `FurnitureProperties` and `OpeningProperties` |
+| Test fixtures | `userLayers` and `userLayerId: null` added to `export.test.ts`, `hitTest.test.ts`, `crud.test.ts` |
+
+Build: `tsc --noEmit` clean, 136/136 tests.

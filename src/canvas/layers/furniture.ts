@@ -451,7 +451,7 @@ function _drawShape(
         const y = -hd + t * hd * 2;
         ctx.beginPath();
         ctx.moveTo(-hw + hw * 0.35, y);
-        ctx.lineTo(hw - 2, y);
+        ctx.lineTo(hw * 0.98, y);
         ctx.lineWidth = 1;
         ctx.stroke();
       }
@@ -525,6 +525,61 @@ function _drawShape(
         ctx.strokeStyle = strokeColor;
         ctx.lineWidth = 1;
         ctx.stroke();
+      }
+      break;
+    }
+
+    case 'ceiling-fan': {
+      const r = Math.min(hw, hd);
+      // Outer sweep circle (dashed, shows blade reach)
+      ctx.beginPath();
+      ctx.arc(0, 0, r * 0.92, 0, Math.PI * 2);
+      ctx.fillStyle = fillColor;
+      ctx.fill();
+      ctx.setLineDash([4, 3]);
+      ctx.strokeStyle = strokeColor;
+      ctx.stroke();
+      ctx.setLineDash([]);
+      // 4 blades at 0°, 90°, 180°, 270°
+      for (let i = 0; i < 4; i++) {
+        const a = (i / 4) * Math.PI * 2;
+        ctx.save();
+        ctx.rotate(a);
+        // Blade: tapered ellipse from hub edge to near rim
+        ctx.beginPath();
+        ctx.ellipse(r * 0.52, 0, r * 0.38, r * 0.14, 0, 0, Math.PI * 2);
+        ctx.fillStyle = darken(fillColor, 0.12);
+        ctx.fill();
+        ctx.strokeStyle = strokeColor;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        ctx.restore();
+      }
+      // Centre hub
+      ctx.beginPath();
+      ctx.arc(0, 0, r * 0.12, 0, Math.PI * 2);
+      ctx.fillStyle = darken(fillColor, 0.2);
+      ctx.fill();
+      ctx.strokeStyle = strokeColor;
+      ctx.stroke();
+      break;
+    }
+
+    case 'led-strip': {
+      // Outer rect
+      ctx.fillStyle = fillColor;
+      ctx.fillRect(-hw, -hd, hw * 2, hd * 2);
+      ctx.strokeStyle = strokeColor;
+      ctx.strokeRect(-hw, -hd, hw * 2, hd * 2);
+      // Evenly-spaced LED dots along centreline
+      const dotR = Math.min(hd * 0.3, 2.5);
+      const count = Math.max(3, Math.round(hw / 8));
+      ctx.fillStyle = darken(fillColor, 0.3);
+      for (let i = 0; i < count; i++) {
+        const x = -hw * 0.88 + (i / (count - 1)) * hw * 1.76;
+        ctx.beginPath();
+        ctx.arc(x, 0, dotR, 0, Math.PI * 2);
+        ctx.fill();
       }
       break;
     }

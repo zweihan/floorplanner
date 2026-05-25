@@ -1,6 +1,7 @@
 import type { Plan } from '../types/plan';
 import type { UserSettings } from '../types/settings';
 import { PPCM } from '../geometry/transforms';
+import { isUserLayerVisible } from '../utils/userLayers';
 import { drawBackground } from './layers/background';
 import { drawRooms } from './layers/rooms';
 import { drawFurniture } from './layers/furniture';
@@ -24,7 +25,7 @@ export function computeExportBounds(plan: Plan): { minX: number; minY: number; m
   plan.rooms.forEach(r => {
     r.points.forEach(p => { xs.push(p.x); ys.push(p.y); });
   });
-  plan.furniture.forEach(f => {
+  plan.furniture.filter(f => isUserLayerVisible(f.userLayerId, plan.userLayers)).forEach(f => {
     xs.push(f.position.x - f.width / 2, f.position.x + f.width / 2);
     ys.push(f.position.y - f.depth / 2, f.position.y + f.depth / 2);
   });
@@ -77,13 +78,15 @@ export function exportPNG(plan: Plan, settings: UserSettings, scale: 1 | 2 | 4 =
   };
 
   const exportSettings: UserSettings = { ...settings, theme: 'light' };
+  const visibleFurniture = plan.furniture.filter(f => isUserLayerVisible(f.userLayerId, plan.userLayers));
+  const visibleOpenings  = plan.openings.filter(o  => isUserLayerVisible(o.userLayerId,  plan.userLayers));
 
   // Render layers (no grid, no UI elements)
   drawBackground(ctx, pxW, pxH, exportSettings);
   drawRooms(ctx, plan.rooms, viewport, exportSettings, PPCM);
-  drawFurniture(ctx, plan.furniture, viewport, exportSettings, PPCM);
-  drawWalls(ctx, plan.walls, plan.openings, viewport, exportSettings, PPCM);
-  drawOpenings(ctx, plan.walls, plan.openings, viewport, exportSettings, PPCM);
+  drawFurniture(ctx, visibleFurniture, viewport, exportSettings, PPCM);
+  drawWalls(ctx, plan.walls, visibleOpenings, viewport, exportSettings, PPCM);
+  drawOpenings(ctx, plan.walls, visibleOpenings, viewport, exportSettings, PPCM);
   drawDimensions(ctx, plan.dimensions, viewport, exportSettings, PPCM);
   drawTextLabels(ctx, plan.textLabels, viewport, PPCM, null);
   if (includeDimensions) {
@@ -135,12 +138,14 @@ export async function exportPDF(
   };
 
   const exportSettings: UserSettings = { ...settings, theme: 'light' };
+  const visibleFurniturePdf = plan.furniture.filter(f => isUserLayerVisible(f.userLayerId, plan.userLayers));
+  const visibleOpeningsPdf  = plan.openings.filter(o  => isUserLayerVisible(o.userLayerId,  plan.userLayers));
 
   drawBackground(ctx, pxW, pxH, exportSettings);
   drawRooms(ctx, plan.rooms, viewport, exportSettings, PPCM);
-  drawFurniture(ctx, plan.furniture, viewport, exportSettings, PPCM);
-  drawWalls(ctx, plan.walls, plan.openings, viewport, exportSettings, PPCM);
-  drawOpenings(ctx, plan.walls, plan.openings, viewport, exportSettings, PPCM);
+  drawFurniture(ctx, visibleFurniturePdf, viewport, exportSettings, PPCM);
+  drawWalls(ctx, plan.walls, visibleOpeningsPdf, viewport, exportSettings, PPCM);
+  drawOpenings(ctx, plan.walls, visibleOpeningsPdf, viewport, exportSettings, PPCM);
   drawDimensions(ctx, plan.dimensions, viewport, exportSettings, PPCM);
   drawTextLabels(ctx, plan.textLabels, viewport, PPCM, null);
   if (includeDimensions) {

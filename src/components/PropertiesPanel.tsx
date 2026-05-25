@@ -358,6 +358,7 @@ function RoomProperties({ roomId }: { roomId: string }) {
 function OpeningProperties({ openingId }: { openingId: string }) {
   const plan = useStore(s => s.plans[s.activePlanId!]);
   const updateOpening = useStore(s => s.updateOpening);
+  const assignUserLayer = useStore(s => s.assignUserLayer);
   const opening = plan?.openings.find(o => o.id === openingId);
 
   const [width, setWidth] = useState(opening?.width ?? 90);
@@ -492,6 +493,23 @@ function OpeningProperties({ openingId }: { openingId: string }) {
           </div>
         </>
       )}
+
+      {plan.userLayers.length > 0 && (
+        <Row label="Layer">
+          <select
+            value={opening.userLayerId ?? 'default'}
+            onChange={e => {
+              const v = e.target.value;
+              assignUserLayer([openingId], v === 'default' ? null : v);
+            }}
+            className="w-full border border-gray-300 rounded px-2 py-0.5 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-blue-400"
+          >
+            {plan.userLayers.map(l => (
+              <option key={l.id} value={l.id}>{l.name}</option>
+            ))}
+          </select>
+        </Row>
+      )}
     </div>
   );
 }
@@ -501,6 +519,7 @@ function OpeningProperties({ openingId }: { openingId: string }) {
 function FurnitureProperties({ furnitureId }: { furnitureId: string }) {
   const plan = useStore(s => s.plans[s.activePlanId!]);
   const updateFurniture = useStore(s => s.updateFurniture);
+  const assignUserLayer = useStore(s => s.assignUserLayer);
   const item = plan?.furniture.find(f => f.id === furnitureId);
 
   const [label, setLabel] = useState(item?.label ?? '');
@@ -630,6 +649,23 @@ function FurnitureProperties({ furnitureId }: { furnitureId: string }) {
           />
         </div>
       </Row>
+
+      {plan.userLayers.length > 0 && (
+        <Row label="Layer">
+          <select
+            value={item.userLayerId ?? 'default'}
+            onChange={e => {
+              const v = e.target.value;
+              assignUserLayer([furnitureId], v === 'default' ? null : v);
+            }}
+            className="w-full border border-gray-300 rounded px-2 py-0.5 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-blue-400"
+          >
+            {plan.userLayers.map(l => (
+              <option key={l.id} value={l.id}>{l.name}</option>
+            ))}
+          </select>
+        </Row>
+      )}
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { Plan, Point, Wall, Room, Opening, FurnitureItem, DimensionLine, TextLabel, Viewport, BackgroundImage } from '../types/plan';
+import type { Plan, Point, Wall, Room, Opening, FurnitureItem, DimensionLine, TextLabel, Viewport, BackgroundImage, UserLayer } from '../types/plan';
 import type { ToolType, LayerName, Toast } from '../types/tools';
 import type { UserSettings } from '../types/settings';
 import { uuid } from '../utils/uuid';
@@ -7,6 +7,8 @@ import { DEFAULT_SETTINGS } from '../data/defaultSettings';
 import { STORAGE_KEYS, saveToStorage, loadFromStorage } from '../utils/localStorage';
 
 // ─── Default plan ────────────────────────────────────────────────────────────
+
+const DEFAULT_USER_LAYER: UserLayer = { id: 'default', name: 'Default', visible: true, color: '#6b7280' };
 
 function makeDefaultPlan(): Plan {
   return {
@@ -25,6 +27,7 @@ function makeDefaultPlan(): Plan {
     dimensions: [],
     textLabels: [],
     viewport: { panX: 0, panY: 0, zoom: 1.0 },
+    userLayers: [{ ...DEFAULT_USER_LAYER }],
   };
 }
 
@@ -130,6 +133,15 @@ interface AppState {
   clearChain(): void;
   setCamera(changes: Partial<Viewport>): void;
   setLayer(name: LayerName, changes: { visible?: boolean; locked?: boolean }): void;
+
+  /** Add a new user layer to the active plan. Auto-names "Layer N" if name omitted. */
+  addUserLayer(name?: string): void;
+  /** Remove a user layer; items on it are moved to Default (userLayerId → null). Cannot delete 'default'. */
+  deleteUserLayer(id: string): void;
+  /** Update name, visible, or color of a user layer. */
+  updateUserLayer(id: string, changes: Partial<Pick<UserLayer, 'name' | 'visible' | 'color'>>): void;
+  /** Assign furniture/openings matching `ids` to the given user layer (null = Default). */
+  assignUserLayer(ids: string[], layerId: string | null): void;
 
   undo(): void;
   redo(): void;
@@ -485,6 +497,54 @@ export const useStore = create<AppState>((set, get) => ({
     }));
   },
 
+  // ─── User layer actions ───────────────────────────────────────────────────────
+
+  addUserLayer: (name) => {
+    withHistory(set, get, plan => {
+      const n = plan.userLayers.length;
+      const newLayer: UserLayer = {
+        id: uuid(),
+        name: name ?? `Layer ${n}`,
+        visible: true,
+        color: '#3b82f6',
+      };
+      return { ...plan, userLayers: [...plan.userLayers, newLayer] };
+    });
+  },
+
+  deleteUserLayer: (id) => {
+    if (id === 'default') return;
+    const state = get();
+    const plan = state.activePlanId ? state.plans[state.activePlanId] : null;
+    const layer = plan?.userLayers.find(l => l.id === id);
+    const movedCount = (plan?.furniture.filter(f => f.userLayerId === id).length ?? 0)
+      + (plan?.openings.filter(o => o.userLayerId === id).length ?? 0);
+    withHistory(set, get, p => ({
+      ...p,
+      furniture: p.furniture.map(f => f.userLayerId === id ? { ...f, userLayerId: null } : f),
+      openings: p.openings.map(o => o.userLayerId === id ? { ...o, userLayerId: null } : o),
+      userLayers: p.userLayers.filter(l => l.id !== id),
+    }));
+    if (movedCount > 0) {
+      get().addToast(`"${layer?.name ?? 'Layer'}" deleted — ${movedCount} item(s) moved to Default`, 'info');
+    }
+  },
+
+  updateUserLayer: (id, changes) => {
+    withHistory(set, get, plan => ({
+      ...plan,
+      userLayers: plan.userLayers.map(l => l.id === id ? { ...l, ...changes } : l),
+    }));
+  },
+
+  assignUserLayer: (ids, layerId) => {
+    withHistory(set, get, plan => ({
+      ...plan,
+      furniture: plan.furniture.map(f => ids.includes(f.id) ? { ...f, userLayerId: layerId } : f),
+      openings: plan.openings.map(o => ids.includes(o.id) ? { ...o, userLayerId: layerId } : o),
+    }));
+  },
+
   // ─── Undo / Redo ────────────────────────────────────────────────────────────
   undo: () => {
     const { past, plans, activePlanId, future } = get();
@@ -704,11 +764,25 @@ export const useStore = create<AppState>((set, get) => ({
       width: 1200,
       height: 800,
       viewport: { panX: 0, panY: 0, zoom: 1 },
+      userLayers: [{ ...DEFAULT_USER_LAYER }],
       ...planData,
       id: uuid(),
       createdAt: planData.createdAt ?? new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     } as Plan;
+    // Ensure userLayers is always a valid array (legacy plans may not have it)
+    if (!Array.isArray(importedPlan.userLayers) || importedPlan.userLayers.length === 0) {
+      importedPlan.userLayers = [{ ...DEFAULT_USER_LAYER }];
+    }
+    // Ensure Default layer always exists
+    if (!importedPlan.userLayers.find(l => l.id === 'default')) {
+      importedPlan.userLayers.unshift({ ...DEFAULT_USER_LAYER });
+    }
+    // Migrate furniture/openings: ensure userLayerId is present (null for legacy items without it)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    importedPlan.furniture = (importedPlan.furniture as any[]).map(f => ({ userLayerId: null, ...f }));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    importedPlan.openings = (importedPlan.openings as any[]).map(o => ({ userLayerId: null, ...o }));
     set(s => ({
       plans: { ...s.plans, [importedPlan.id]: importedPlan },
       activePlanId: importedPlan.id,
